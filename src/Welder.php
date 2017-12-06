@@ -153,7 +153,7 @@ class Welder
 	 * @return void
 	 * @author Daniel Baldwin
 	 */
-	public function start($attributesStr)
+	public function start($attributesStr = null)
 	{
 		$random; $secure = false;
 		
