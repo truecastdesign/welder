@@ -25,7 +25,7 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package TrueAdmin 5
- * @version 2.1.2
+ * @version 2.1.1
  * @author Daniel Baldwin
  **/
 class Welder
@@ -159,8 +159,8 @@ class Welder
 		
 		session_start();
 		
-       	 	if(function_exists('openssl_random_pseudo_bytes'))
-        			$random = bin2hex(openssl_random_pseudo_bytes(32, $secure));
+       	if(function_exists('openssl_random_pseudo_bytes'))
+        	$random = bin2hex(openssl_random_pseudo_bytes(32, $secure));
 		else
 			trigger_error('The function openssl_random_pseudo_bytes is not available in PHP!',256);
 		
@@ -171,7 +171,8 @@ class Welder
 		$pairs = self::parse_csv(trim($attributesStr), ' ');
 		
 		# run checks on pairs
-		if(empty($pairs['method'])) $pairs['method'] = 'post';
+		if(empty($pairs['method'])) 
+			$pairs['method'] = 'post';
 		
 		if($pairs['file']=='true')
 		{
@@ -179,7 +180,8 @@ class Welder
 			unset($pairs['file']);
 		}
 		
-		if(!isset($pairs['action'])) $pairs['action'] = str_replace('?'.$_SERVER["QUERY_STRING"],'',$_SERVER["REQUEST_URI"]);
+		if(!isset($pairs['action'])) 
+			$pairs['action'] = str_replace('?'.$_SERVER["QUERY_STRING"],'',$_SERVER["REQUEST_URI"]);
 		
 		# build properties
 		foreach($pairs as $key=>$value)
