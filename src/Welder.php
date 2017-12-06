@@ -25,7 +25,7 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package TrueAdmin 5
- * @version 2.1.1
+ * @version 2.1.2
  * @author Daniel Baldwin
  **/
 class Welder
