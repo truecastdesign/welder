@@ -1,4 +1,5 @@
 <?
+namespace Truecast;
 /**
  * Form Builder and Validation class
  *
