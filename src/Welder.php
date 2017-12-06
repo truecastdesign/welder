@@ -4,6 +4,8 @@ namespace Truecast;
  * Form Builder and Validation class
  *
  *
+<?$F = new \Truecast\Welder?>
+
 <?=$F->start('action=/register-for-events method=post class=registerForm')?>
 <?=$F->text('name=name label="Your Name *" style="width:250px" autofocus=autofocus pattern="^^([1-zA-Z0-1@.\s]{1,255})$" ');?>
 <?=$F->checkbox('name=checkBox label="Checkbox Label" value=Yes')?>
@@ -13,7 +15,7 @@ To set a default selected option other than the first one, add the property sele
 <?=$F->button('type=submit text="Send"')?>
  
 -- FORM VALIDATION IN CONTROLLER --
-$F = new Welder; # if you want to manually create the form, add a hidden field named "form_action" and value to "submit". If you want to change the form_action field value to something unique, pass it as a string when instigating the object. Example: $F = new TAFormBeta('custom_value'); <input type="hidden" name="form_action" value="custom_value"> 
+$F = new \Truecast\Welder; # if you want to manually create the form, add a hidden field named "form_action" and value to "submit". If you want to change the form_action field value to something unique, pass it as a string when instigating the object. Example: $F = new TAFormBeta('custom_value'); <input type="hidden" name="form_action" value="custom_value"> 
 The form field will automatically be added to the form if you use the $F->start() method call to generate your form.
 
 

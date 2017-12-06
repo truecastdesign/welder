@@ -24,7 +24,7 @@ How to build a form:
 Make a new instance
 
 ```php
-$F = new Welder;
+<?$F = new \Truecast\Welder?>
 ```
 
 Output the form tag and other hidden fields
