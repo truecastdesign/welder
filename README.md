@@ -97,7 +97,7 @@ Form Validation
 
 The validate method takes the field name on the left and the validation method to the right of the equal sign. The available validation methods start with validate_ in the class so you can look them up to see what they do. The clean method runs several content cleaning functions to sanitize the data if it does not conform to any set pattern like emails or names, etc.
 
-You can use the spam method to check if the form is spam. If you want to use Akismet, just pass it the field names for their name, email, and content. If you want to make sure the form does not contain any urls then add the nourls flag. If you want to check the captcha add the captcha flag. Display the captcha on the page with <?$F->captcha()?>. You will need to move the form-captcha.php file to a public accessible directory and change the include path into to access the Welder.php file.
+You can use the spam method to check if the form is spam. If you want to use Akismet, just pass it the field names for their name, email, and content. If you want to make sure the form does not contain any urls then add the nourls flag. If you want to check the captcha add the captcha flag. Display the captcha on the page with &lt;?$F-&gt;captcha()?&gt;. You will need to move the form-captcha.php file to a public accessible directory and change the include path into to access the Welder.php file.
 
 ```php
 $F = new Welder; # does not need to be the same instance as the one used to build the form but can be.
