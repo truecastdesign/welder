@@ -9,6 +9,8 @@ namespace Truecast;
 <?=$F->checkbox('name=checkBox label="Checkbox Label" value=Yes')?>
 <?=$F->select('name=selectMenu label="Select Label" options="opt1:Option One| opt2:Option, Two| opt3:Option, Three"')?>
 To set a default selected option other than the first one, add the property selected=(option value), example: selected=opt2
+
+<?=$F->button('type=submit text="Send"')?>
  
 -- FORM VALIDATION IN CONTROLLER --
 $F = new Welder; # if you want to manually create the form, add a hidden field named "form_action" and value to "submit". If you want to change the form_action field value to something unique, pass it as a string when instigating the object. Example: $F = new TAFormBeta('custom_value'); <input type="hidden" name="form_action" value="custom_value"> 
@@ -25,7 +27,7 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package TrueAdmin 5
- * @version 2.1.2
+ * @version 2.1.3
  * @author Daniel Baldwin
  **/
 class Welder
@@ -51,6 +53,7 @@ class Welder
 		$otherKeys[] = 'options'; 
 		$otherKeys[] = 'selected'; 
 		$otherKeys[] = 'checked'; 
+		$otherKeys[] = 'text'; 
 		$pairs = self::parse_csv(trim($attributesStr[0]), ' ');
 
 		# check if method is post or get
