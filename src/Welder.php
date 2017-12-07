@@ -1,4 +1,4 @@
-<?
+<?php
 namespace Truecast;
 /**
  * Form Builder and Validation class
@@ -28,8 +28,8 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 	header("Location: /contact-us/thanks"); exit;
 }
  *
- * @package TrueAdmin 5
- * @version 2.1.3
+ * @package TrueAdmin 6
+ * @version 2.1.4
  * @author Daniel Baldwin
  **/
 class Welder
@@ -46,7 +46,7 @@ class Welder
 	
 	public function __call($type, $attributesStr)
 	{
-		$random; $secure = false;
+		$random = ''; $secure = false; $fieldProperties = ''; $fieldValue = ''; $submitValues = []; $name = '';
 		
 		$otherKeys[] = 'error';
 		$otherKeys[] = 'rules';
@@ -65,11 +65,15 @@ class Welder
 	    	$submitValues = $_GET;
 
 	    # get value
-	    $name = $pairs['name'];
-	    $fieldValue = $submitValues[$name];
+	    if(isset($pairs['name']))
+	    {
+	    	$name = $pairs['name'];
+	    	
+	    	if(isset($submitValues[$name]))
+	    		$fieldValue = $submitValues[$name];
+	    }
 	    
 		# save element
-		
 		$cleanedPairs = array_diff_key($pairs,array_flip($otherKeys));
 		
 		# check if there is an id, if not, then create one.
@@ -160,9 +164,10 @@ class Welder
 	 */
 	public function start($attributesStr = null)
 	{
-		$random; $secure = false;
+		$random = ''; $secure = false; $fieldProperties = ''; $str = '';
 		
-		session_start();
+		if(PHP_SESSION_ACTIVE != session_status())
+			session_start();
 		
        	if(function_exists('openssl_random_pseudo_bytes'))
         	$random = bin2hex(openssl_random_pseudo_bytes(32, $secure));
@@ -176,17 +181,24 @@ class Welder
 		$pairs = self::parse_csv(trim($attributesStr), ' ');
 		
 		# run checks on pairs
-		if(empty($pairs['method'])) 
+		if(isset($pairs['method'])) 
 			$pairs['method'] = 'post';
 		
-		if($pairs['file']=='true')
+		if(isset($pairs['file']) and $pairs['file']=='true')
 		{
 			$pairs['enctype'] = 'multipart/form-data';
 			unset($pairs['file']);
 		}
 		
-		if(!isset($pairs['action'])) 
-			$pairs['action'] = str_replace('?'.$_SERVER["QUERY_STRING"],'',$_SERVER["REQUEST_URI"]);
+		# if the form action is not provided, use the uri for the page
+		if(!isset($pairs['action']))
+		{
+			# remove the query string if available
+			if(isset($_SERVER["QUERY_STRING"]))
+				$pairs['action'] = str_replace('?'.$_SERVER["QUERY_STRING"],'',$_SERVER["REQUEST_URI"]);
+			else
+				$pairs['action'] = $_SERVER["REQUEST_URI"];
+		} 			
 		
 		# build properties
 		foreach($pairs as $key=>$value)
@@ -213,17 +225,31 @@ class Welder
 	 **/
 	public function validate($fieldRulesStr, $customErrorsStr = null)
 	{
-		
+		$submitValues = null; $formSubmitted = false;
+
+		# check if method is post or get
+	    if(isset($_POST['form_action'])) 
+	    {
+	    	if($_POST['form_action'] == self::$actionField)
+	    	{
+	    		$formSubmitted = true;
+	    		$submitValues = $_POST;
+	    	}
+	    }	
+	    elseif(isset($_GET['form_action']))
+	    {
+	    	if($_POST['form_action'] == self::$actionField)
+	    	{
+	    		$formSubmitted = true;
+	    		$submitValues = $_GET;
+	    	}	
+	    }
+
 		#check if form is submitted or not
-		if($_POST['form_action'] == self::$actionField OR $_GET['form_action'] == self::$actionField)
+		if($formSubmitted)
 		{
-		    # check if method is post or get
-		    if(isset($_POST['form_action'])) 
-		    	$submitValues = $_POST;
-		    else 
-		    	$submitValues = $_GET;
-			
-			session_start();
+		    if(PHP_SESSION_ACTIVE != session_status())
+				session_start();
 
 			# check session authenticity token
 			if($_SESSION['taform1'] != $submitValues['authenticity_token'])
@@ -406,7 +432,7 @@ class Welder
 	
 	private function input($type, $pairs, $properties)
 	{
-		$labelAfter; $labelBefore;
+		$labelAfter = ''; $labelBefore = ''; $checked = false;
 		# decide if label goes before or after input
 		switch($type)
 		{
@@ -414,10 +440,9 @@ class Welder
 			case 'radio':
 				$labelAfter = self::buildLabel($pairs['label'], $pairs['id']);
 
-				$checked = false;
-
 				if(isset($pairs['checked']) and empty($fieldValue))
 					$checked = true;
+				
 				if(!empty($fieldValue) and $fieldValue == $pairs['checked'])
 					$checked = true;
 			break;
@@ -500,14 +525,14 @@ class Welder
 		return '<button'.$properties.'>'.$pairs['text'].'</button>';
 	}
 	
-	private function buildLabel($text, $id=null)
+	private function buildLabel($text = '', $id = null)
 	{
-		$htmlAfterLabel; $for;
+		$htmlAfterLabel = ''; $for = '';
 		
 		# if there is a | in the text then split it off
-		if(strpos($text, '|')!==false)
+		if(strpos($text, '|') !== false)
 		{
-			$textParts = explode('|',$text);
+			$textParts = explode('|', $text);
 			$text = $textParts[0];
 			$htmlAfterLabel = $textParts[1];
 		}			
@@ -556,8 +581,10 @@ class Welder
 	    return $elements;
 	}
 	
-	private function parse_csv($csv_string, $delimiter = ",", $skip_empty_lines = true, $trim_fields = true)
+	private function parse_csv($csv_string = '', $delimiter = ",", $skip_empty_lines = true, $trim_fields = true)
 	{
+	    $attributes = [];
+
 	    $enc = preg_replace('/(?<!")""/', '!!Q!!', $csv_string);
 	    $enc = preg_replace_callback(
 	        '/"(.*?)"/s',
@@ -580,10 +607,14 @@ class Welder
 	        $lines
 	    );
 		
+		if(is_array($array))
 		foreach($array[0] as $pair)
 		{
-			list($key, $value) = explode('=',$pair);
-			$attributes[$key] = $value;
+			if(strpos($pair, '='))
+			{
+				list($key, $value) = explode('=',$pair);
+				$attributes[$key] = $value;				
+			}			
 		}
 		return $attributes;
 	}
