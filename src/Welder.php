@@ -29,7 +29,7 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package TrueAdmin 6
- * @version 2.1.4
+ * @version 2.1.5
  * @author Daniel Baldwin
  **/
 class Welder
@@ -181,7 +181,7 @@ class Welder
 		$pairs = self::parse_csv(trim($attributesStr), ' ');
 		
 		# run checks on pairs
-		if(isset($pairs['method'])) 
+		if(!isset($pairs['method']))
 			$pairs['method'] = 'post';
 		
 		if(isset($pairs['file']) and $pairs['file']=='true')
