@@ -29,7 +29,7 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package TrueAdmin 6
- * @version 2.1.5
+ * @version 2.1.6
  * @author Daniel Baldwin
  **/
 class Welder
@@ -38,6 +38,8 @@ class Welder
 	static $actionField;
 	var $form = null;
 	var $valid = true;
+	var $options = ['no_go_to_field_links'=>false];
+	var $generalErrors = [];
 	
 	public function __construct($value='submit')
 	{
@@ -181,7 +183,7 @@ class Welder
 		$pairs = self::parse_csv(trim($attributesStr), ' ');
 		
 		# run checks on pairs
-		if(!isset($pairs['method']))
+		if(!isset($pairs['method'])) 
 			$pairs['method'] = 'post';
 		
 		if(isset($pairs['file']) and $pairs['file']=='true')
@@ -245,6 +247,7 @@ class Welder
 	    	}	
 	    }
 
+
 		#check if form is submitted or not
 		if($formSubmitted)
 		{
@@ -262,20 +265,32 @@ class Welder
 			$customErrors = self::parse_csv(trim($customErrorsStr), ' ');
 			
 			# has the form details be set?
-			if(!count($this->form)) 
-				return true; 
+			#if(!count($this->form)) 
+			#	return true; 
     		
     		# validate the form data
     		foreach($fieldRules as $field=>$rules)
     		{
-    			if(isset($rules)) 
-    				$this->rules($field, explode('|', $rules), $submitValues[$field], $customErrors[$field]);
+    			if(isset($rules))
+    			{
+    				$customErrorMsg = array_key_exists($field, $customErrors)? $customErrors[$field]:null;
+    				$fieldValue = array_key_exists($field, $submitValues)? $submitValues[$field]:null;
+
+    				$this->rules($field, explode('|', $rules), $fieldValue, $customErrorMsg);
+    			} 
+    				
     		}
+
+    		trigger_error($this->errors(),512); # display errors
 		
-			trigger_error($this->errors(),512); # display errors
-			
-			return false; # return form not valid so the user can see the spam errors.
-	    
+			if($this->valid)
+			{
+				return true;
+			}
+			else
+			{
+				return false; # return form not valid so the user can see the spam errors.
+			}
 		}
 		else
 			return false;
@@ -286,6 +301,8 @@ class Welder
 	# get the form errors
 	public function errors()
 	{
+		$errors = '';
+
 		if(!count($this->form)) return false;
 			foreach($this->form as $field=>$values)
 				if(isset($values['error'])) $errors .= '<li>'.$values['error'].'</li>';
@@ -298,13 +315,23 @@ class Welder
 	}
 	
 	# get the form array after it's processed
-	public function get()
+	/**
+	 * return the form values cleaned and validated
+	 *
+	 * @param bool $returnObj set to true if you want an value object return rather than an array.
+	 * @return array|object
+	 * @author Daniel Baldwin - danb@truecastdesign.com
+	 **/
+	public function get($returnObj = false)
 	{
 		if(!count($this->form)) return false;
 		
 		foreach($this->form as $field=>$values) 
 			$form[$field] = $values['data'];
 		
+		if($returnObj)
+			$form = (object) $form;
+
 		return $form;
 	}
 	
@@ -371,15 +398,23 @@ class Welder
 	{
 		$matchField = null;
 		$stripChars = array('_','-','*');
-		$labelParts = explode('|',$this->elements[$field]['label']);
-		$label = $labelParts[0];
-		$fieldLabel = ($this->elements[$field]['label']? str_replace('*','',strip_tags($label)):ucwords(str_replace($stripChars,' ',$field)));
-		if($rule == 'matches') $matchField = ucwords(str_replace($stripChars,' ',$param));
+		
+		$fieldLabel = ucwords(str_replace($stripChars,' ',$field));
+		
+		if($rule == 'matches') 
+		{
+			$matchField = ucwords(str_replace($stripChars,' ',$param));
+		}	
+		
 		if($rule == 'depends')
 		{
 		    $parts = explode('=',$param);
     		$dependField = trim($parts[0]);
 		} 
+		else
+		{
+			$dependField = '';
+		}
 		
 		# error messages. Feel free to change if needed.
 		if($this->options['no_go_to_field_links'])
@@ -458,7 +493,7 @@ class Welder
 	
 	private function textarea($name, $pairs, $fieldProperties, $fieldValue)
 	{
-		return self::buildLabel($pairs['label'], $pairs['id']).'<textarea'.$fieldProperties.'>'.$fieldValue.'</textarea>';
+		return '<span id="error-'.$pairs['name'].'" class="anchor"></span>'.self::buildLabel($pairs['label'], $pairs['id']).'<textarea'.$fieldProperties.'>'.$fieldValue.'</textarea>';
 	}
 
 	private function select($name, $pairs, $fieldProperties, $fieldValue)
@@ -1122,11 +1157,12 @@ class Welder
 		unset($fields['action'],$fields['submit']);
 		
 		$values = $this->get(); 
+		#\nX-Mailer: Microsoft Office Outlook 12.0
 		
 		switch($settings['type'])
 		{
 			case 'html':
-				$extraHeaders .= "\r\nMIME-Version: 1.0\nContent-type: text/html; charset=UTF-8\nX-Mailer: Microsoft Office Outlook 12.0\nContent-Language: en-us";
+				$extraHeaders .= "\r\nMIME-Version: 1.0\nContent-type: text/html; charset=UTF-8\nContent-Language: en-us";
 				
 				$eBody = $settings['header'];
 				foreach($fields as $key)
@@ -1185,12 +1221,61 @@ class Welder
 		
 		if($settings['to_name']) $to = '"'.$settings['to_name'].'" <'.$settings['to_email'].'>';
 		else $to = $settings['to_email'];
+		
 		return mail($to, $settings['subject'], $eBody, 'From: "'.$settings['from_name'].'" <'.$settings['from_email'].'>'.$extraHeaders);	
+	}
+
+	/**
+	 * build and return an html email body with the form fields
+	 *
+	 * @param array|object $values  key=>value pairs, "field name"=>"field value"
+	 * @param array $fields  simple array of field names you want in the email
+	 * @return string html email
+	 * @author Daniel Baldwin - danb@truecastdesign.com
+	 **/
+	public function buildEmailBody($values, $fields)
+	{
+		$eBody = '';
+
+		if(!isset($fields))
+		{
+			trigger_error("Fields were not sent", 256);
+			return false;
+		}
+
+		if(!isset($values))
+		{
+			trigger_error("Form values were not sent", 256);
+			return false;
+		}
+
+		$values = (object) $values;
+
+		if(is_array($fields))
+		foreach($fields as $key)
+		{
+			if($values->{$key}) 
+				$eBody .= str_replace('_',' ',ucwords($key)).': '.nl2br(htmlspecialchars_decode(html_entity_decode(trim(stripslashes($values->{$key})))),false).'<br><br>';
+		}
+
+		return $eBody;
 	}
 	
 	function textToHTML($str)
 	{
 		return preg_replace("\n\r?\n", "<br>", htmlspecialchars($str));
+	}
+
+	/**
+	 * simple br tag to ln converter for converting 
+	 *
+	 * @param string $text
+	 * @return string
+	 * @author Daniel Baldwin - danb@truecastdesign.com
+	 **/
+	public function HTMLToText($text)
+	{
+		return strip_tags(str_ireplace(["<br />","<br>","<br/>"], "\n", str_replace(["\r", "\n"], '', $text)));
 	}
 
 	/**
@@ -1209,6 +1294,7 @@ class Welder
 				$_POST = $_GET;
 
 			$result = true;
+			$contentInfo = [];
 			# expected values: 'spamcontent=message,name akismet=name,email,content nourls captcha'
 
 			# parse $attributesStr
@@ -1217,7 +1303,8 @@ class Welder
 			$akismet = array_key_exists('akismet', $pairs)? true:false;
 			
 			# make array of author and message fields for akismet
-			if($akismet) list($contentInfo["author"], $contentInfo["author_email"], $contentInfo["content"]) = explode(',',$pairs['akismet']);
+			if($akismet) 
+				list($contentInfo["author"], $contentInfo["author_email"], $contentInfo["content"]) = explode(',',$pairs['akismet']);
 
 			# check akismet, fields, and host forging
 			if($this->spamTest($akismet, $contentInfo)) $result = false;
@@ -1284,14 +1371,14 @@ class Welder
 	 */
 	public function spamTest($akismet=false, $contentInfo)
 	{
-	    if($akismetKey == null) $akismetKey = "1638dc33068b";
+	    $akismetKey = "1638dc33068b";
 		
 		if(!isset($_SERVER['HTTP_USER_AGENT']) OR !$_SERVER['REQUEST_METHOD'] == "POST"){
 			return true;
 		}
 		#$host = strtolower(str_replace('www.','',$host));
 
-		$authHosts[] = SITE_DOMAIN;
+		$authHosts[] = strtolower(str_replace('www.','',$_SERVER['SERVER_NAME']));
 		#else $authHosts = $host;
 		$fromArray = parse_url(strtolower($_SERVER['HTTP_REFERER']));
 		$wwwUsed = strpos($fromArray['host'], "www.");
