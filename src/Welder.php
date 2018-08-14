@@ -7,7 +7,7 @@ namespace Truecast;
 <?$F = new \Truecast\Welder?>
 
 <?=$F->start('action=/register-for-events method=post class=registerForm')?>
-<?=$F->text('name=name label="Your Name *" style="width:250px" autofocus=autofocus pattern="^^([1-zA-Z0-1@.\s]{1,255})$" ');?>
+<?=$F->text('name=name label="Your Name *" style="width:250px" autofocus required pattern="^^([1-zA-Z0-1@.\s]{1,255})$" ');?>
 <?=$F->checkbox('name=checkBox label="Checkbox Label" value=Yes')?>
 <?=$F->select('name=selectMenu label="Select Label" options="opt1:Option One| opt2:Option, Two| opt3:Option, Three"')?>
 To set a default selected option other than the first one, add the property selected=(option value), example: selected=opt2
@@ -29,7 +29,7 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package TrueAdmin 6
- * @version 2.1.6
+ * @version 2.2.1
  * @author Daniel Baldwin
  **/
 class Welder
@@ -58,13 +58,37 @@ class Welder
 		$otherKeys[] = 'selected'; 
 		$otherKeys[] = 'checked'; 
 		$otherKeys[] = 'text'; 
-		$pairs = self::parse_csv(trim($attributesStr[0]), ' ');
 
+		# single attribute keywords
+		$singleAttributes[] = 'readonly';
+		$singleAttributes[] = 'disabled';
+		$singleAttributes[] = 'novalidate';
+		$singleAttributes[] = 'autofocus';
+		$singleAttributes[] = 'formnovalidate';
+		$singleAttributes[] = 'multiple';
+		$singleAttributes[] = 'required';
+
+		foreach($singleAttributes as $attr)
+		{
+			$attSearch[] = $attr;
+			$attReplace[] = $attr.'='.$attr;
+		}
+
+		$attributesStr[0] = str_replace($attSearch, $attReplace, $attributesStr[0]);
+
+		$pairs = self::parse_csv(trim($attributesStr[0]), ' ');
+		
 		# check if method is post or get
-	    if(isset($_POST['form_action'])) 
+	    if(isset($_POST['form_action']) and $_SERVER['REQUEST_METHOD'] == 'POST') 
+	    {
 	    	$submitValues = $_POST;
-	    else 
-	    	$submitValues = $_GET;
+	    }	
+	    elseif(isset($_GET['form_action']) and $_SERVER['REQUEST_METHOD'] == 'GET')
+	    {
+	    	$submitValues = array_map(function($str){
+				return trim(strip_tags($str));
+			}, $_GET);
+	    }
 
 	    # get value
 	    if(isset($pairs['name']))
@@ -99,7 +123,10 @@ class Welder
 	
 		foreach($cleanedPairs as $key=>$value)
 		{
-			$fieldProperties .= ' '.$key.'="'.$value.'"';
+			if(in_array($key, $singleAttributes))
+				$fieldProperties .= ' '.$key;	
+			else
+				$fieldProperties .= ' '.$key.'="'.$value.'"';
 		}
 		
 		switch($type)
@@ -178,7 +205,7 @@ class Welder
 		
 		# set session authenticity token
 		$_SESSION['taform1'] = $random;
-				
+		
 		# parse $attributesStr
 		$pairs = self::parse_csv(trim($attributesStr), ' ');
 		
@@ -253,20 +280,19 @@ class Welder
 		{
 		    if(PHP_SESSION_ACTIVE != session_status())
 				session_start();
-
+			
 			# check session authenticity token
-			if($_SESSION['taform1'] != $submitValues['authenticity_token'])
-				return false;
+			/*if($_SESSION['taform1'] != $submitValues['authenticity_token'])
+			{
+				$this->throwGeneralError("The authenticity token does not match what was in the form.");
+				$this->valid = false;
+			}*/	
 			
 			# parse $attributesStr
 			$fieldRules = self::parse_csv(trim($fieldRulesStr), ' ');  
 
 			# parse $customErrors
 			$customErrors = self::parse_csv(trim($customErrorsStr), ' ');
-			
-			# has the form details be set?
-			#if(!count($this->form)) 
-			#	return true; 
     		
     		# validate the form data
     		foreach($fieldRules as $field=>$rules)
@@ -281,7 +307,8 @@ class Welder
     				
     		}
 
-    		trigger_error($this->errors(),512); # display errors
+    		if( !empty($displayErrors = $this->errors()) )
+    			trigger_error($this->errors(),512); # display errors
 		
 			if($this->valid)
 			{
@@ -312,6 +339,18 @@ class Welder
 				if(!empty($err)) $errors .= '<li>'.$err.'</li>';
 		
 		return '<ul>'.$errors.'</ul>';
+	}
+
+	/**
+	 * Throw a general error
+	 *
+	 * @param 
+	 * @return void
+	 * @author Daniel Baldwin - danb@truecastdesign.com
+	 **/
+	public function throwGeneralError($errorMsg)
+	{
+		$this->generalErrors[] = $errorMsg;
 	}
 	
 	# get the form array after it's processed
@@ -467,7 +506,7 @@ class Welder
 	
 	private function input($type, $pairs, $properties)
 	{
-		$labelAfter = ''; $labelBefore = ''; $checked = false;
+		$labelAfter = ''; $labelBefore = ''; $checked = false; $errorSpan = '';
 		# decide if label goes before or after input
 		switch($type)
 		{
@@ -488,7 +527,12 @@ class Welder
 		if($checked)
 			$properties .= ' checked="checked"';
 
-		return '<span id="error-'.$pairs['name'].'" class="anchor"></span>'.$labelBefore.' <input type="'.$type.'"'.$properties.'> '.$labelAfter;
+		if($type != 'hidden')
+		{
+			$errorSpan = '<span id="error-'.$pairs['name'].'" class="anchor"></span>';
+		}
+	
+		return $errorSpan.$labelBefore.' <input type="'.$type.'"'.$properties.'> '.$labelAfter;
 	}
 	
 	private function textarea($name, $pairs, $fieldProperties, $fieldValue)
@@ -563,6 +607,9 @@ class Welder
 	private function buildLabel($text = '', $id = null)
 	{
 		$htmlAfterLabel = ''; $for = '';
+
+		if(empty($text))
+			return '';
 		
 		# if there is a | in the text then split it off
 		if(strpos($text, '|') !== false)
