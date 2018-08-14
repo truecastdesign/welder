@@ -4,7 +4,10 @@ namespace Truecast;
  * Form Builder and Validation class
  *
  *
-<?$F = new \Truecast\Welder?>
+<?
+use Truecast\Welder;
+$F = new Welder
+?>
 
 <?=$F->start('action=/register-for-events method=post class=registerForm')?>
 <?=$F->text('name=name label="Your Name *" style="width:250px" autofocus required pattern="^^([1-zA-Z0-1@.\s]{1,255})$" ');?>
@@ -28,8 +31,8 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 	header("Location: /contact-us/thanks"); exit;
 }
  *
- * @package TrueAdmin 6
- * @version 2.2.1
+ * @package True 6
+ * @version 2.2.2
  * @author Daniel Baldwin
  **/
 class Welder
