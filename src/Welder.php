@@ -32,7 +32,7 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package True 6
- * @version 2.2.2
+ * @version 2.2.5
  * @author Daniel Baldwin
  **/
 class Welder
@@ -260,22 +260,7 @@ class Welder
 		$submitValues = null; $formSubmitted = false;
 
 		# check if method is post or get
-	    if(isset($_POST['form_action'])) 
-	    {
-	    	if($_POST['form_action'] == self::$actionField)
-	    	{
-	    		$formSubmitted = true;
-	    		$submitValues = $_POST;
-	    	}
-	    }	
-	    elseif(isset($_GET['form_action']))
-	    {
-	    	if($_POST['form_action'] == self::$actionField)
-	    	{
-	    		$formSubmitted = true;
-	    		$submitValues = $_GET;
-	    	}	
-	    }
+	    $formSubmitted = $this->submitted();
 
 
 		#check if form is submitted or not
@@ -326,7 +311,47 @@ class Welder
 			return false;
 	}
 	
-	
+	/**
+	 * Check if the form is submitted or not
+	 *
+	 * @return bool true: the form is submitted, false: its not
+	 * @author Daniel Baldwin - danb@truecastdesign.com
+	 **/
+	public function submitted()
+	{
+		$formSubmitted = false;
+
+		# check if method is post or get
+	    if(isset($_POST['form_action'])) 
+	    {
+	    	if($_POST['form_action'] == self::$actionField)
+	    	{
+	    		$formSubmitted = true;
+	    	}
+	    }	
+	    elseif(isset($_GET['form_action']))
+	    {
+	    	if($_POST['form_action'] == self::$actionField)
+	    	{
+	    		$formSubmitted = true;
+	    	}	
+	    }
+
+	    return $formSubmitted;
+	}
+
+	/**
+	* Set one or many field values
+	*
+	* @param array $value ['fieldname'=>'value'] you can set multiple fields
+	* @return bool 
+	* @author Daniel Baldwin - danb@truecastdesign.com
+	**/
+	public function setFieldValue(array $value)
+	{
+		$this->data = array_merge($this->data, $value);
+		return true;
+	}
 	
 	# get the form errors
 	public function errors()
@@ -341,7 +366,10 @@ class Welder
 			foreach($this->generalErrors as $err) 
 				if(!empty($err)) $errors .= '<li>'.$err.'</li>';
 		
-		return '<ul>'.$errors.'</ul>';
+		if(!empty($errors))
+			return '<ul>'.$errors.'</ul>';
+		else
+			return null;
 	}
 
 	/**
@@ -1338,7 +1366,7 @@ class Welder
 	public function spam($attributesStr='')
 	{
 		#check if form is submitted or not
-		if($_POST['form_action']==self::$actionField OR $_GET['form_action']==self::$actionField)
+		if($this->submitted())
 		{
 			if(isset($_GET['form_action']))
 				$_POST = $_GET;
