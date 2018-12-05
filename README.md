@@ -41,7 +41,7 @@ The above code will output this HTML
 	<input type="hidden" name="form_action" value="submit">
 ```
 
-Test Fields
+Text Fields
 ----------- 
 
 The method names are the type of field you want. textarea, checkbox, etc. The double quotes in the property string are not needed if the value does not have spaces. Saves typing by skipping them if not needed.
@@ -50,12 +50,22 @@ The method names are the type of field you want. textarea, checkbox, etc. The do
 <?=$F->text('name=name label="Your Name *" style="width:250px" autofocus=autofocus pattern="^^([1-zA-Z0-1@.\s]{1,255})$" ');?>
 ```
 
+Supported field types: text, password, hidden, submit, reset, image, file, number, email, tel, date, datetime, datetime-local, month, search, time, url, week, color, range, checkbox, radio, select, button.
+
 The above code will output this HTML
 
 ```html
 <span id="error-name" class="anchor"></span>
 <label for="name_1">Your Name*</label> 
 <input type="text" name="name" style="width:250px" autofocus="autofocus" pattern="^^([1-zA-Z0-1@.\s]{1,255})$" id="name_1">
+```
+
+Other examples:
+
+```php
+<?=$F->email('name=field_name label="The Label" style="width:250px"');?>
+<?=$F->textarea('name=field_name label="The Label" style="width:250px"');?>
+<?=$F->tel('name=field_name label="The Label" style="width:250px"');?>
 ```
 
 Checkboxes
