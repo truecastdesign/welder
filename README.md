@@ -102,6 +102,16 @@ The above code will output this HTML
 </select>
 ```
 
+Custom Errors
+-------------
+
+Use the 'error' key to set a custom error to display when the form is submitted and validation errors are displayed.
+
+```php
+<?=$F->email('name=field_name label="The Label" error="Please enter a valid email address!"');?>
+```
+
+
 Form Validation
 ---------------
 
