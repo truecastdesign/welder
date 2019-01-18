@@ -32,7 +32,7 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package True 6
- * @version 2.2.5
+ * @version 2.2.6
  * @author Daniel Baldwin
  **/
 class Welder
@@ -82,16 +82,16 @@ class Welder
 		$pairs = self::parse_csv(trim($attributesStr[0]), ' ');
 		
 		# check if method is post or get
-	    if(isset($_POST['form_action']) and $_SERVER['REQUEST_METHOD'] == 'POST') 
-	    {
-	    	$submitValues = $_POST;
-	    }	
-	    elseif(isset($_GET['form_action']) and $_SERVER['REQUEST_METHOD'] == 'GET')
-	    {
-	    	$submitValues = array_map(function($str){
+	   if(isset($_POST['form_action'])) 
+	   {
+	   	$submitValues = $_POST;
+	   }	
+	   elseif(isset($_GET['form_action']))
+	   {
+	   	$submitValues = array_map(function($str){
 				return trim(strip_tags($str));
 			}, $_GET);
-	    }
+	   }
 
 	    # get value
 	    if(isset($pairs['name']))
@@ -268,6 +268,17 @@ class Welder
 		{
 		    if(PHP_SESSION_ACTIVE != session_status())
 				session_start();
+
+			if(isset($_POST['form_action'])) 
+		    {
+		    	$submitValues = $_POST;
+		    }	
+		    elseif(isset($_GET['form_action']))
+		    {
+		    	$submitValues = array_map(function($str){
+					return trim(strip_tags($str));
+				}, $_GET);
+		    }
 			
 			# check session authenticity token
 			/*if($_SESSION['taform1'] != $submitValues['authenticity_token'])
