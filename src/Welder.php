@@ -32,7 +32,7 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package True 6
- * @version 2.2.7
+ * @version 2.2.9
  * @author Daniel Baldwin
  **/
 class Welder
@@ -776,6 +776,18 @@ class Welder
 		if(!isset($_POST[$field])) return FALSE;			
 		$value = $_POST[$field];
 		return ($str !== $value)? FALSE:TRUE;
+	}
+
+	# Match one field to another
+	# Use: field=in[value one,value two]
+	function validate_in($str, $values)
+	{
+		$list = explode(',', $values);
+		if (in_array($str, $list)) {
+			return true;
+		} else {
+			return false;
+		}
 	}
 	
 	# Match one field to another
