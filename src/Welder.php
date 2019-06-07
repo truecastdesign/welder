@@ -32,7 +32,7 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package True 6
- * @version 2.2.9
+ * @version 2.2.10
  * @author Daniel Baldwin
  **/
 class Welder
@@ -43,6 +43,7 @@ class Welder
 	var $valid = true;
 	var $options = ['no_go_to_field_links'=>false];
 	var $generalErrors = [];
+	var $csrfSession = 'ksdfj3h9ehrjfh';
 	
 	public function __construct($value='submit')
 	{
@@ -198,16 +199,18 @@ class Welder
 	{
 		$random = ''; $secure = false; $fieldProperties = ''; $str = '';
 		
-		if(PHP_SESSION_ACTIVE != session_status())
+		if(PHP_SESSION_ACTIVE != session_status()) {
 			session_start();
-		
-       	if(function_exists('openssl_random_pseudo_bytes'))
-        	$random = bin2hex(openssl_random_pseudo_bytes(32, $secure));
-		else
+		}
+			
+		if (function_exists('openssl_random_pseudo_bytes')) {
+			$random = bin2hex(openssl_random_pseudo_bytes(32, $secure));
+			# set session authenticity token
+			$_SESSION[$this->csrfSession] = $random;
+		}  	
+		else {
 			trigger_error('The function openssl_random_pseudo_bytes is not available in PHP!',256);
-		
-		# set session authenticity token
-		$_SESSION['taform1'] = $random;
+		}			
 		
 		# parse $attributesStr
 		$pairs = self::parse_csv(trim($attributesStr), ' ');
@@ -221,6 +224,7 @@ class Welder
 			$pairs['enctype'] = 'multipart/form-data';
 			unset($pairs['file']);
 		}
+		
 		
 		# if the form action is not provided, use the uri for the page
 		if(!isset($pairs['action']))
@@ -266,8 +270,10 @@ class Welder
 		#check if form is submitted or not
 		if($formSubmitted)
 		{
-		    if(PHP_SESSION_ACTIVE != session_status())
+		    if(PHP_SESSION_ACTIVE != session_status()) {
 				session_start();
+			 }
+			$token = $_SESSION[$this->csrfSession];	
 
 			if(isset($_POST['form_action'])) 
 		    {
@@ -281,11 +287,23 @@ class Welder
 		    }
 			
 			# check session authenticity token
-			/*if($_SESSION['taform1'] != $submitValues['authenticity_token'])
-			{
-				$this->throwGeneralError("The authenticity token does not match what was in the form.");
-				$this->valid = false;
-			}*/	
+			if (function_exists('hash_equals')) {
+            if ($token !== false) {
+					if(hash_equals($token, $submitValues['authenticity_token']) === false)
+					{
+						$this->throwGeneralError("The authenticity token does not match what was in the form.");
+						$this->valid = false;
+					}
+				}
+        	} else {
+            if ($token !== false) {
+					if($token != $submitValues['authenticity_token'])
+					{
+						$this->throwGeneralError("The authenticity token does not match what was in the form.");
+						$this->valid = false;
+					}
+				}				
+        	}			
 			
 			# parse $attributesStr
 			$fieldRules = self::parse_csv(trim($fieldRulesStr), ' ');  
@@ -369,18 +387,27 @@ class Welder
 	{
 		$errors = '';
 
-		if(!count($this->form)) return false;
-			foreach($this->form as $field=>$values)
-				if(isset($values['error'])) $errors .= '<li>'.$values['error'].'</li>';
+		#if(!count($this->form)) return false;
+		foreach($this->form as $field=>$values) {
+			if(isset($values['error'])) {
+				$errors .= '<li>'.$values['error'].'</li>';
+			}
+		}
 		
-		if(count($this->generalErrors)) 
-			foreach($this->generalErrors as $err) 
-				if(!empty($err)) $errors .= '<li>'.$err.'</li>';
+		if(count($this->generalErrors)) {
+			foreach($this->generalErrors as $err) {
+				if(!empty($err)) {
+					$errors .= '<li>'.$err.'</li>';
+				}
+			}				
+		}			
 		
-		if(!empty($errors))
+		if(!empty($errors)) {
 			return '<ul>'.$errors.'</ul>';
-		else
+		}
+		else {
 			return null;
+		}			
 	}
 
 	/**
