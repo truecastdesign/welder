@@ -123,7 +123,7 @@ The validate method takes the field name on the left and the validation method t
 You can use the spam method to check if the form is spam. If you want to use Akismet, just pass it the field names for their name, email, and content. If you want to make sure the form does not contain any urls then add the nourls flag. If you want to check the captcha add the captcha flag. Display the captcha on the page with &lt;?$F-&gt;captcha()?&gt;. You will need to move the form-captcha.php file to a public accessible directory and change the include path into to access the Welder.php file.
 
 ```php
-$F = new Welder; # does not need to be the same instance as the one used to build the form but can be.
+$F = new Truecast\Welder; # does not need to be the same instance as the one used to build the form but can be.
 
 if($F->validate('first_name=name email_address=email phone=clean message=required') and $F->spam('akismet=name,email,content nourls captcha')) # valid
 {
@@ -135,3 +135,23 @@ if($F->validate('first_name=name email_address=email phone=clean message=require
 	# take them to the thanks page
 	header("Location: /contact-us/thanks"); exit;
 }
+```
+
+Configuration
+---
+
+## Turn off CSRF protection
+
+```php
+$F = new \Truecast\Welder(['csrf'=>false]);
+```
+
+## Use more than one form in a view or controller
+
+```php
+$F = new \Truecast\Welder(['action_field'=>'submit1']);
+
+$F2 = new \Truecast\Welder(['action_field'=>'submit2']);
+```
+
+You need to set the custom action field value on both the controller instance and the view instance so they match.
