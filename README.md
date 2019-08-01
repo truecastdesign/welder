@@ -137,6 +137,41 @@ if($F->validate('first_name=name email_address=email phone=clean message=require
 }
 ```
 
+Getting and Setting Field values
+---
+
+If you want to populate the form fields from a database record or other source on display of form but not submitting it, use the setFieldValues method to pass a key value array of field name to value. You can set more than one at a time.
+
+```php
+$values = ['field1'=>'hello', 'field2'=>'world'];
+$F->setFieldValues($values);
+```
+
+You can do this as an else statement on the if($F->validate()) method call if you make sure the view has access to the same Welder instance. Pass the $F variable to the view if needed.
+
+```php
+if($F->validate()) {
+	// form submitted code
+} else {
+	// form loaded code
+	$values = ['field1'=>'hello', 'field2'=>'world'];
+	$F->setFieldValues($values);
+}
+```
+
+To get a field value or all field values in the view use:
+
+```php
+<?=$F->getFieldValues('field1')?>
+```
+
+Get all in array.
+
+```php
+<? $array = $F->getFieldValues()?>
+```
+
+
 Configuration
 ---
 
@@ -144,6 +179,18 @@ Configuration
 
 ```php
 $F = new \Truecast\Welder(['csrf'=>false]);
+```
+
+## Turn off inline field errors
+
+Normally there is outputted a span like:
+```html
+<span id="error-first_name" class="anchor"></span>
+``
+before each field. If you don't want this tag outputted for some reason, turn it off using the below code.
+
+```php
+$F = new \Truecast\Welder(['hide_field_error_tags'=>true]);
 ```
 
 ## Use more than one form in a view or controller
