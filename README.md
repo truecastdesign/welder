@@ -1,6 +1,6 @@
 Welder - HTML5 Form Builder for PHP
 =======================================
-@version 2.2.10
+@version 2.3.0
 
 This library provides a simple powerful HTML5 form builder, validator, spam checker, spam submitter, form contents emailer, and more.
 

@@ -32,27 +32,50 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package True 6
- * @version 2.2.10
+ * @version 2.3.0
  * @author Daniel Baldwin
  **/
 class Welder
 {
 	static $nextId = 1;
 	static $actionField;
+	static $hideFieldErrorTags = false;
 	var $form = null;
 	var $valid = true;
 	var $options = ['no_go_to_field_links'=>false];
 	var $generalErrors = [];
 	var $csrfSession = 'ksdfj3h9ehrjfh';
+	var $csrfState = true;
+	var $submitValues = [];
 	
-	public function __construct($value='submit')
+	/**
+	 * construct
+	 * Use the action_field only if you want to customize the form submission detection field if you have more than one form on a page or in a controller. The view and controller both need to be set and match.
+	 * Use the csrf argument set to false on the controller construct if you want to disable CSRF protection. It is on by default so setting it to true does nothing.
+	 *
+	 * @param array $params ['action_field'=>'custom_value', 'csrf'=>false] 
+	 */
+	public function __construct($params=[])
 	{
-		self::$actionField = $value;
+		if (isset($params['action_field'])) {
+			self::$actionField = $params['action_field'];
+		} else {
+			self::$actionField = 'submit';
+		}
+
+		if (isset($params['hide_field_error_tags'])) {
+			self::$hideFieldErrorTags = $params['hide_field_error_tags'];
+		}
+		
+
+		if (isset($params['csrf'])) {
+			$this->csrfState = $params['action_field'];
+		}
 	}
 	
 	public function __call($type, $attributesStr)
 	{
-		$random = ''; $secure = false; $fieldProperties = ''; $fieldValue = ''; $submitValues = []; $name = '';
+		$random = ''; $secure = false; $fieldProperties = ''; $fieldValue = ''; $name = '';
 		
 		$otherKeys[] = 'error';
 		$otherKeys[] = 'rules';
@@ -85,11 +108,11 @@ class Welder
 		# check if method is post or get
 	   if(isset($_POST['form_action'])) 
 	   {
-	   	$submitValues = $_POST;
+	   	$this->submitValues = $_POST;
 	   }	
 	   elseif(isset($_GET['form_action']))
 	   {
-	   	$submitValues = array_map(function($str){
+	   	$this->submitValues = array_map(function($str){
 				return trim(strip_tags($str));
 			}, $_GET);
 	   }
@@ -99,8 +122,8 @@ class Welder
 	    {
 	    	$name = $pairs['name'];
 	    	
-	    	if(isset($submitValues[$name]))
-	    		$fieldValue = $submitValues[$name];
+	    	if(isset($this->submitValues[$name]))
+	    		$fieldValue = $this->submitValues[$name];
 	    }
 	    
 		# save element
@@ -203,28 +226,31 @@ class Welder
 			session_start();
 		}
 			
-		if (function_exists('openssl_random_pseudo_bytes')) {
-			$random = bin2hex(openssl_random_pseudo_bytes(32, $secure));
-			# set session authenticity token
-			$_SESSION[$this->csrfSession] = $random;
-		}  	
-		else {
-			trigger_error('The function openssl_random_pseudo_bytes is not available in PHP!',256);
-		}			
+		if ($this->csrfState) {
+			if (function_exists('openssl_random_pseudo_bytes')) {
+				$random = bin2hex(openssl_random_pseudo_bytes(32, $secure));
+				# set session authenticity token
+				$_SESSION[$this->csrfSession] = $random;
+			}  	
+			else {
+				trigger_error('The function openssl_random_pseudo_bytes is not available in PHP!',256);
+			}
+		}				
 		
 		# parse $attributesStr
 		$pairs = self::parse_csv(trim($attributesStr), ' ');
 		
 		# run checks on pairs
 		if(!isset($pairs['method'])) 
+		{
 			$pairs['method'] = 'post';
+		}	
 		
 		if(isset($pairs['file']) and $pairs['file']=='true')
 		{
 			$pairs['enctype'] = 'multipart/form-data';
 			unset($pairs['file']);
-		}
-		
+		}	
 		
 		# if the form action is not provided, use the uri for the page
 		if(!isset($pairs['action']))
@@ -245,7 +271,11 @@ class Welder
 		
 		# build html
 		$str = '<form'.$fieldProperties.' accept-charset="utf-8">'."\n";
-		$str .= '<input type="hidden" name="authenticity_token" value="'.$random.'">'."\n";
+		
+		if ($this->csrfState) {
+			$str .= '<input type="hidden" name="authenticity_token" value="'.$random.'">'."\n";
+		}
+
 		$str .= '<input type="hidden" name="form_action" value="'.self::$actionField.'">'."\n";
 		
 		return $str;
@@ -270,41 +300,46 @@ class Welder
 		#check if form is submitted or not
 		if($formSubmitted)
 		{
-		    if(PHP_SESSION_ACTIVE != session_status()) {
+		   if(PHP_SESSION_ACTIVE != session_status()) {
 				session_start();
-			 }
-			$token = $_SESSION[$this->csrfSession];	
+			}
+			
+			if ($this->csrfState) {
+				$token = $_SESSION[$this->csrfSession];
+			}
 
 			if(isset($_POST['form_action'])) 
-		    {
+		   {
 		    	$submitValues = $_POST;
-		    }	
-		    elseif(isset($_GET['form_action']))
-		    {
+		   }	
+		   elseif(isset($_GET['form_action']))
+		   {
 		    	$submitValues = array_map(function($str){
 					return trim(strip_tags($str));
 				}, $_GET);
-		    }
+		   }
 			
 			# check session authenticity token
-			if (function_exists('hash_equals')) {
-            if ($token !== false) {
-					if(hash_equals($token, $submitValues['authenticity_token']) === false)
-					{
-						$this->throwGeneralError("The authenticity token does not match what was in the form.");
-						$this->valid = false;
+			if ($this->csrfState) {
+				if (function_exists('hash_equals')) {
+					if ($token !== false) {
+						if(hash_equals($token, $submitValues['authenticity_token']) === false)
+						{
+							$this->throwGeneralError("The authenticity token does not match what was in the form.");
+							$this->valid = false;
+						}
 					}
-				}
-        	} else {
-            if ($token !== false) {
-					if($token != $submitValues['authenticity_token'])
-					{
-						$this->throwGeneralError("The authenticity token does not match what was in the form.");
-						$this->valid = false;
-					}
-				}				
-        	}			
-			
+				} else {
+					if ($token !== false) {
+						if($token != $submitValues['authenticity_token'])
+						{
+							$this->throwGeneralError("The authenticity token does not match what was in the form.");
+							$this->valid = false;
+						}
+					}				
+				}			
+			}
+
 			# parse $attributesStr
 			$fieldRules = self::parse_csv(trim($fieldRulesStr), ' ');  
 
@@ -378,8 +413,25 @@ class Welder
 	**/
 	public function setFieldValue(array $value)
 	{
-		$this->data = array_merge($this->data, $value);
+		$this->submitValues = array_merge($this->submitValues, $value);
 		return true;
+	}
+
+	/**
+	 * Get the value of one or all fields
+	 *
+	 * @param string $key field name. If not set, then an array of all field values will be returned
+	 * @return string|array
+	 */
+	public function getFieldValue($key = null)
+	{
+		if (is_null($key)) {
+			return $this->submitValues;
+		}
+
+		if (is_string($key)) {
+			return $this->submitValues[$key];
+		}
 	}
 	
 	# get the form errors
@@ -596,7 +648,7 @@ class Welder
 		if($checked)
 			$properties .= ' checked="checked"';
 
-		if($type != 'hidden')
+		if($type != 'hidden' and !self::$hideFieldErrorTags)
 		{
 			$errorSpan = '<span id="error-'.$pairs['name'].'" class="anchor"></span>';
 		}
@@ -606,7 +658,12 @@ class Welder
 	
 	private function textarea($name, $pairs, $fieldProperties, $fieldValue)
 	{
-		return '<span id="error-'.$pairs['name'].'" class="anchor"></span>'.self::buildLabel($pairs['label'], $pairs['id']).'<textarea'.$fieldProperties.'>'.$fieldValue.'</textarea>';
+		if(!self::$hideFieldErrorTags)
+		{
+			$errorSpan = '<span id="error-'.$pairs['name'].'" class="anchor"></span>';
+		}
+
+		return $errorSpan.self::buildLabel($pairs['label'], $pairs['id']).'<textarea'.$fieldProperties.'>'.$fieldValue.'</textarea>';
 	}
 
 	private function select($name, $pairs, $fieldProperties, $fieldValue)
