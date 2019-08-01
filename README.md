@@ -186,7 +186,7 @@ $F = new \Truecast\Welder(['csrf'=>false]);
 Normally there is outputted a span like:
 ```html
 <span id="error-first_name" class="anchor"></span>
-``
+```
 before each field. If you don't want this tag outputted for some reason, turn it off using the below code.
 
 ```php
