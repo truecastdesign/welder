@@ -44,6 +44,16 @@ The above code will output this HTML
 	<input type="hidden" name="form_action" value="submit">
 ```
 
+File Uploads
+---
+
+If you are going to use File Uploads in the form, than you need to have the enctype set to multipart/form-data. To set that, pass file=true as an argument on the start method.
+
+
+```php
+<?=$F->start('action=/html-php-page class=formClassName file=true')?>
+```
+
 Text Fields
 ----------- 
 

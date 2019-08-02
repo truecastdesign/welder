@@ -214,7 +214,7 @@ class Welder
 	/**
 	 * Call this method to output their beginning of the form
 	 *
-	 * @param string $attributesStr 
+	 * @param string $attributesStr ['method'=>'get', 'file'=>true]
 	 * @return void
 	 * @author Daniel Baldwin
 	 */
