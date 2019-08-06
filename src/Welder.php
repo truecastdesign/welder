@@ -32,7 +32,7 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package True 6
- * @version 2.3.0
+ * @version 2.3.1
  * @author Daniel Baldwin
  **/
 class Welder
@@ -53,7 +53,7 @@ class Welder
 	 * Use the action_field only if you want to customize the form submission detection field if you have more than one form on a page or in a controller. The view and controller both need to be set and match.
 	 * Use the csrf argument set to false on the controller construct if you want to disable CSRF protection. It is on by default so setting it to true does nothing.
 	 *
-	 * @param array $params ['action_field'=>'custom_value', 'csrf'=>false, 'hide_field_error_tags'=>true] 
+	 * @param array $params ['action_field'=>'custom_value', 'csrf'=>false] 
 	 */
 	public function __construct($params=[])
 	{
@@ -94,6 +94,10 @@ class Welder
 		$singleAttributes[] = 'formnovalidate';
 		$singleAttributes[] = 'multiple';
 		$singleAttributes[] = 'required';
+
+		# exclude from adding value attribute to tag
+		$noValueAttribute[] = 'checkbox';
+		$noValueAttribute[] = 'radio';
 
 		foreach($singleAttributes as $attr)
 		{
@@ -150,10 +154,12 @@ class Welder
 	
 		foreach($cleanedPairs as $key=>$value)
 		{
-			if(in_array($key, $singleAttributes))
+			if(in_array($key, $singleAttributes)) {
 				$fieldProperties .= ' '.$key;	
-			else
-				$fieldProperties .= ' '.$key.'="'.$value.'"';
+				continue;
+			}				
+			
+			$fieldProperties .= ' '.$key.'="'.$value.'"';				
 		}
 		
 		switch($type)
@@ -178,10 +184,9 @@ class Welder
 			case 'week':
 			case 'color':
 			case 'range':
-				if(!empty($fieldValue))
-					$fieldProperties .= ' value="'.$fieldValue.'"';
+				$fieldProperties .= ' value="'.$fieldValue.'"';					
 
-				return self::input($type, $pairs, $fieldProperties);
+				return self::input($type, $pairs, $fieldProperties, $fieldValue);
 			break;
 			case 'textarea':
 				return self::textarea($type, $pairs, $fieldProperties, $fieldValue);
@@ -190,16 +195,10 @@ class Welder
 				return self::select($type, $pairs, $fieldProperties, $fieldValue);
 			break;
 			case 'checkbox':
-				if(!empty($fieldValue))
-					$fieldProperties .= ' value="'.$fieldValue.'"';
-
-				return self::input($type, $pairs, $fieldProperties);
+				return self::input($type, $pairs, $fieldProperties, $fieldValue);
 			break;
 			case 'radio':
-				if(!empty($fieldValue))
-					$fieldProperties .= ' value="'.$fieldValue.'"';
-
-				return self::input($type, $pairs, $fieldProperties);
+				return self::input($type, $pairs, $fieldProperties, $fieldValue);
 			break;
 			
 			case 'button':
@@ -214,7 +213,7 @@ class Welder
 	/**
 	 * Call this method to output their beginning of the form
 	 *
-	 * @param string $attributesStr ['method'=>'get', 'file'=>true]
+	 * @param string $attributesStr 
 	 * @return void
 	 * @author Daniel Baldwin
 	 */
@@ -625,7 +624,7 @@ class Welder
 		return ($errors[$rule]? $errors[$rule]:$errors['required']);
 	}
 	
-	private function input($type, $pairs, $properties)
+	private function input($type, $pairs, $fieldProperties, $fieldValue)
 	{
 		$labelAfter = ''; $labelBefore = ''; $checked = false; $errorSpan = '';
 		# decide if label goes before or after input
@@ -635,25 +634,27 @@ class Welder
 			case 'radio':
 				$labelAfter = self::buildLabel($pairs['label'], $pairs['id']);
 
-				if(isset($pairs['checked']) and empty($fieldValue))
+				if (isset($pairs['checked']) and empty($fieldValue)) {
 					$checked = true;
+				}
 				
-				if(!empty($fieldValue) and $fieldValue == $pairs['checked'])
+				if ($fieldValue == $pairs['value']) {
 					$checked = true;
+				}				
 			break;
 			default:
 				$labelBefore = self::buildLabel($pairs['label'], $pairs['id']);
 		}	
 
 		if($checked)
-			$properties .= ' checked="checked"';
+			$fieldProperties .= ' checked';
 
 		if($type != 'hidden' and !self::$hideFieldErrorTags)
 		{
 			$errorSpan = '<span id="error-'.$pairs['name'].'" class="anchor"></span>';
 		}
-	
-		return $errorSpan.$labelBefore.' <input type="'.$type.'"'.$properties.'> '.$labelAfter;
+		
+		return $errorSpan.$labelBefore.' <input type="'.$type.'"'.$fieldProperties.'> '.$labelAfter;
 	}
 	
 	private function textarea($name, $pairs, $fieldProperties, $fieldValue)
