@@ -643,7 +643,9 @@ class Welder
 				}				
 			break;
 			default:
-				$labelBefore = self::buildLabel($pairs['label'], $pairs['id']);
+				if (isset($pairs['label']) and isset($pairs['id'])) {
+					$labelBefore = self::buildLabel($pairs['label'], $pairs['id']);
+				}				
 		}	
 
 		if($checked)
@@ -651,7 +653,12 @@ class Welder
 
 		if($type != 'hidden' and !self::$hideFieldErrorTags)
 		{
-			$errorSpan = '<span id="error-'.$pairs['name'].'" class="anchor"></span>';
+			if (isset($pairs['name'])) {
+				$errorIdPart = $pairs['name'];
+			} elseif ($pairs['id']) {
+				$errorIdPart = $pairs['id'];
+			}
+			$errorSpan = '<span id="error-'.$errorIdPart.'" class="anchor"></span>';
 		}
 		
 		return $errorSpan.$labelBefore.' <input type="'.$type.'"'.$fieldProperties.'> '.$labelAfter;
@@ -659,9 +666,15 @@ class Welder
 	
 	private function textarea($name, $pairs, $fieldProperties, $fieldValue)
 	{
+		if (isset($pairs['name'])) {
+			$errorIdPart = $pairs['name'];
+		} elseif ($pairs['id']) {
+			$errorIdPart = $pairs['id'];
+		}
+		
 		if(!self::$hideFieldErrorTags)
 		{
-			$errorSpan = '<span id="error-'.$pairs['name'].'" class="anchor"></span>';
+			$errorSpan = '<span id="error-'.$errorIdPart.'" class="anchor"></span>';
 		}
 
 		return $errorSpan.self::buildLabel($pairs['label'], $pairs['id']).'<textarea'.$fieldProperties.'>'.$fieldValue.'</textarea>';
