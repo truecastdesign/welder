@@ -32,7 +32,7 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package True 6
- * @version 2.3.1
+ * @version 2.3.2
  * @author Daniel Baldwin
  **/
 class Welder
@@ -184,26 +184,26 @@ class Welder
 			case 'week':
 			case 'color':
 			case 'range':
-				$fieldProperties .= ' value="'.$fieldValue.'"';					
+				$fieldProperties .= ' value="'.htmlentities($fieldValue).'"';					
 
-				return self::input($type, $pairs, $fieldProperties, $fieldValue);
+				return self::input($type, $pairs, $fieldProperties, htmlentities($fieldValue));
 			break;
 			case 'textarea':
 				return self::textarea($type, $pairs, $fieldProperties, $fieldValue);
 			break;
 			case 'select':
-				return self::select($type, $pairs, $fieldProperties, $fieldValue);
+				return self::select($type, $pairs, $fieldProperties, htmlentities($fieldValue));
 			break;
 			case 'checkbox':
-				return self::input($type, $pairs, $fieldProperties, $fieldValue);
+				return self::input($type, $pairs, $fieldProperties, htmlentities($fieldValue));
 			break;
 			case 'radio':
-				return self::input($type, $pairs, $fieldProperties, $fieldValue);
+				return self::input($type, $pairs, $fieldProperties, htmlentities($fieldValue));
 			break;
 			
 			case 'button':
 				if(!empty($fieldValue))
-					$fieldProperties .= ' value="'.$fieldValue.'"';
+					$fieldProperties .= ' value="'.htmlentities($fieldValue).'"';
 
 				return self::button($pairs, $fieldProperties);
 			break;
