@@ -33,7 +33,7 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package True 6
- * @version 2.3.6
+ * @version 2.3.7
  * @author Daniel Baldwin
  **/
 class Welder
@@ -54,7 +54,7 @@ class Welder
 	 * Use the action_field only if you want to customize the form submission detection field if you have more than one form on a page or in a controller. The view and controller both need to be set and match.
 	 * Use the csrf argument set to false on the controller construct if you want to disable CSRF protection. It is on by default so setting it to true does nothing.
 	 *
-	 * @param array $params ['action_field'=>'custom_value', 'csrf'=>false] 
+	 * @param array $params ['action_field'=>'custom_value', 'csrf'=>false, 'hide_field_error_tags'=>true] 
 	 */
 	public function __construct($params=[])
 	{
@@ -66,11 +66,10 @@ class Welder
 
 		if (isset($params['hide_field_error_tags'])) {
 			self::$hideFieldErrorTags = $params['hide_field_error_tags'];
-		}
-		
+		}		
 
 		if (isset($params['csrf'])) {
-			$this->csrfState = $params['action_field'];
+			$this->csrfState = $params['csrf'];
 		}
 	}
 	
