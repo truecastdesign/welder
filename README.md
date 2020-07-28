@@ -1,6 +1,6 @@
 Welder - HTML5 Form Builder for PHP
 =======================================
-v2.4.1
+v2.5.0
 
 This library provides a simple powerful HTML5 form builder, validator, spam checker, spam submitter, form contents emailer, and more.
 
@@ -130,17 +130,33 @@ Form Validation
 
 The validate method takes the field name on the left and the validation method to the right of the equal sign. The available validation methods start with validate_ in the class so you can look them up to see what they do. The clean method runs several content cleaning functions to sanitize the data if it does not conform to any set pattern like emails or names, etc.
 
-You can use the spam method to check if the form is spam. If you want to use Akismet, just pass it the field names for their name, email, and content. If you want to make sure the form does not contain any urls then add the nourls flag. If you want to check the captcha add the captcha flag. Display the captcha on the page with &lt;?$F-&gt;captcha()?&gt;. You will need to move the form-captcha.php file to a public accessible directory and change the include path into to access the Welder.php file.
+You can use the spam method to check if the form is spam. If you want to use Akismet, just pass it the field names for their name, email, and content. They need to be in that order.
+
+If you want to make sure the form does not contain any urls then add the nourls flag like: nourls=true. Setting it to true checks all the fields. If you want to only check certain fields do that like this: nourls="field1,field2".
+
+If you want to check the captcha add the captcha flag. Display the captcha on the page with &lt;?$F-&gt;captcha()?&gt;. You will need to move the form-captcha.php file to a public accessible directory and change the include path into to access the Welder.php file.
+
+Spam Content Checking
+---------------------
+
+Welder uses several spam checking method to determine if an email message is likely to be spam. Use the keyword spamcontent and set it equal to the field names you want to check.
+Example: spamcontent="subject,message"
+
+Gibberish: matches text that is not real words but just random repeated keystrokes like "asdasd" or "qwejjjjjeeee"
+
+Too Many Consonants: Checks if the message has words will more than 6 consonants in a row. Usually means it is invalid words and spam
+
+Keyword Search: Search message for spam keyword phrases that spammers commonly use to sell you something.
 
 ```php
 $F = new Truecast\Welder; # does not need to be the same instance as the one used to build the form but can be.
 
-if($F->validate('first_name=name email_address=email phone=clean message=required') and $F->spam('akismet=name,email,content nourls captcha')) # valid
+if($F->validate('first_name=name email_address=email phone=clean message=required') and $F->spam('akismet="name,email,content" spamcontent="subject,message" nourls="subject,message"')) # valid
 {
 	$values = $F->get(); # array of values from form cleaned and ready to insert into database or what ever.
 	
 	# email the form contents to yourself
-	$F->emailForm(array('to_name'=>'Name', 'to_email'=>'name@gmail.com', 'from_name'=>$values['name'], 'from_email'=>$values['email'], 'subject'=>'Contact from Website', 'type'=>'html'), [name, email, phone, message]);
+	$F->emailForm(['to_name'=>'Name', 'to_email'=>'name@gmail.com', 'from_name'=>$values['name'], 'from_email'=>$values['email'], 'subject'=>'Contact from Website', 'type'=>'html'], ['name', 'email', 'phone', 'message']);
 	
 	# take them to the thanks page
 	header("Location: /contact-us/thanks"); exit;
