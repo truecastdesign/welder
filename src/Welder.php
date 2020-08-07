@@ -1647,6 +1647,11 @@ class Welder
 						if ($this->keywordSearch($_POST[$field])) {
 							$spamKeywordSearch = true;
 							$result = false;
+						}
+						
+						if ($this->htmlInField($_POST[$field])) {
+							$spamHTML = true;
+							$result = false;
 						}	
 					}	
 				}
@@ -1655,7 +1660,7 @@ class Welder
 			if ($spamGibberish) trigger_error("Spam type: Gibberish!", 512);
 			if ($spamTooManyConsonants) trigger_error("Spam type: Too Many Consonants Together!", 512);
 			if ($spamKeywordSearch) trigger_error("Spam type: Keyword Search!", 512);
-			
+			if ($spamHTML) trigger_error("Spam type: HTML in message!", 512);			
 		}
 
 		if($result == false)
@@ -1787,6 +1792,11 @@ class Welder
 			}	
 		}
 		return $hit;
+	}
+
+	public function htmlInField($value='')
+	{
+		return (strip_tags($value) != $value)? true:false;
 	}
 	
 	/**
