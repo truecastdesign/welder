@@ -25,15 +25,15 @@ The form field will automatically be added to the form if you use the $F->start(
 
 if($F->validate('name=name email=email phone=clean message=required') and $F->spam('akismet="name,email,content" spamcontent="subject,message" nourls=true')) # valid
 {
-	$values = $F->get(); # array of values from form cleaned and ready to insert into database or what ever.
+	$values = $F->get('object'); # array of values from form cleaned and ready to insert into database or what ever.
 	
-	$F->emailForm(array('to_name'=>'Name', 'to_email'=>'name@gmail.com', 'from_name'=>$values['name'], 'from_email'=>$values['email'], 'subject'=>'Contact from Website', 'type'=>'html'), [name, email, phone, message]);
+	$F->emailForm(array('to_name'=>'Name', 'to_email'=>'name@gmail.com', 'from_name'=>$values->name, 'from_email'=>$values->email, 'subject'=>'Contact from Website', 'type'=>'html'), [name, email, phone, message]);
 	
 	header("Location: /contact-us/thanks"); exit;
 }
  *
  * @package True 6
- * @version 2.4.0
+ * @version 2.4.2
  * @author Daniel Baldwin
  **/
 class Welder
@@ -78,7 +78,7 @@ class Welder
 		$attributesStr = $args[0];
 		$selectOptions = (isset($args[1])? $args[1]:[]);				
 		
-		$random = ''; $secure = false; $fieldProperties = ''; $fieldValue = ''; $name = '';
+		$random = ''; $secure = false; $fieldProperties = ''; $name = '';
 		
 		$otherKeys[] = 'error';
 		$otherKeys[] = 'rules';
@@ -123,16 +123,18 @@ class Welder
 				return trim(strip_tags($str));
 			}, $_GET);
 	   }
-
-	    # get value
-	    if(isset($pairs['name']))
-	    {
-	    	$name = $pairs['name'];
-	    	
-	    	if(isset($this->submitValues[$name]))
-	    		$fieldValue = $this->submitValues[$name];
-	    }
-	    
+		
+		# get value
+		if (isset($pairs['name'])) {
+			$name = str_replace(['[',']'],'',$pairs['name']);
+			
+			if (isset($this->submitValues[$name]))
+				$fieldValue = $this->submitValues[$name];
+			else
+			 	$fieldValue = '';
+		} else
+			$fieldValue = '';
+	   
 		# save element
 		$cleanedPairs = array_diff_key($pairs,array_flip($otherKeys));
 		
@@ -157,7 +159,7 @@ class Welder
 	
 		foreach($cleanedPairs as $key=>$value)
 		{
-			if(in_array($key, $singleAttributes)) {
+			if (in_array($key, $singleAttributes)) {
 				$fieldProperties .= ' '.$key;	
 				continue;
 			}				
@@ -187,21 +189,20 @@ class Welder
 			case 'week':
 			case 'color':
 			case 'range':
-				$fieldProperties .= ' value="'.htmlentities($fieldValue).'"';					
-
+				$fieldProperties .= ' value="'.htmlentities($fieldValue).'"';
 				return self::input($type, $pairs, $fieldProperties, htmlentities($fieldValue));
 			break;
 			case 'textarea':
 				return self::textarea($type, $pairs, $fieldProperties, $fieldValue);
 			break;
 			case 'select':
-				return self::select($type, $pairs, $fieldProperties, htmlentities($fieldValue), $selectOptions);
+				return self::select($type, $pairs, $fieldProperties, $fieldValue, $selectOptions);
 			break;
 			case 'checkbox':
-				return self::input($type, $pairs, $fieldProperties, htmlentities($fieldValue));
+				return self::input($type, $pairs, $fieldProperties, $fieldValue);
 			break;
 			case 'radio':
-				return self::input($type, $pairs, $fieldProperties, htmlentities($fieldValue));
+				return self::input($type, $pairs, $fieldProperties, $fieldValue);
 			break;
 			
 			case 'button':
@@ -410,13 +411,12 @@ class Welder
 	* Set one or many field values
 	*
 	* @param array $value ['fieldname'=>'value'] you can set multiple fields
-	* @return bool 
+	* @return void 
 	* @author Daniel Baldwin - danb@truecastdesign.com
 	**/
-	public function setFieldValue(array $value)
+	public function setFieldValue(array $value): void
 	{
 		$this->submitValues = array_merge($this->submitValues, $value);
-		return true;
 	}
 
 	/**
@@ -481,19 +481,24 @@ class Welder
 	/**
 	 * return the form values cleaned and validated
 	 *
-	 * @param bool $returnObj set to true if you want an value object return rather than an array.
+	 * @param bool|string $returnObj set to true if you want an value object return rather than an array or a better way use a string of object or array to be clear what to expect.
 	 * @return array|object
 	 * @author Daniel Baldwin - danb@truecastdesign.com
 	 **/
 	public function get($returnObj = false)
 	{
-		if(!count($this->form)) return false;
+		if (!count($this->form)) return false;
 		
 		foreach($this->form as $field=>$values) 
 			$form[$field] = $values['data'];
 		
-		if($returnObj)
-			$form = (object) $form;
+		if (is_string($returnObj)) 
+			if ($returnObj == 'object')
+				return (object) $form;
+		
+		if (is_bool($returnObj))
+			if ($returnObj)
+				return (object) $form;
 
 		return $form;
 	}
@@ -629,39 +634,43 @@ class Welder
 	}
 	
 	private function input($type, $pairs, $fieldProperties, $fieldValue)
-	{
+	{	
 		$labelAfter = ''; $labelBefore = ''; $checked = false; $errorSpan = '';
 		# decide if label goes before or after input
-		switch($type)
+		switch ($type)
 		{
 			case 'checkbox':
 			case 'radio':
 				$labelAfter = self::buildLabel($pairs['label'], $pairs['id']);
 
-				if (isset($pairs['checked']) and empty($fieldValue)) {
+				if (isset($pairs['checked']) and empty($fieldValue))
 					$checked = true;
-				}
 				
-				if ($fieldValue == $pairs['value']) {
-					$checked = true;
-				}				
+				if (is_string($fieldValue)) {
+					if ($fieldValue == $pairs['value']) {
+						$checked = true;
+					}
+				}
+				elseif (is_array($fieldValue)) {
+					if (in_array($pairs['value'], $fieldValue))
+						$checked = true;
+				}	
 			break;
 			default:
-				if (isset($pairs['label']) and isset($pairs['id'])) {
-					$labelBefore = self::buildLabel($pairs['label'], $pairs['id']);
-				}				
+				if (isset($pairs['label']) and isset($pairs['id']))
+					$labelBefore = self::buildLabel($pairs['label'], $pairs['id']);				
 		}	
 
-		if($checked)
+		if ($checked)
 			$fieldProperties .= ' checked';
 
-		if($type != 'hidden' and !self::$hideFieldErrorTags)
+		if ($type != 'hidden' and !self::$hideFieldErrorTags)
 		{
-			if (isset($pairs['name'])) {
+			if (isset($pairs['name']))
 				$errorIdPart = $pairs['name'];
-			} elseif ($pairs['id']) {
+			elseif ($pairs['id'])
 				$errorIdPart = $pairs['id'];
-			}
+			
 			$errorSpan = '<span id="error-'.$errorIdPart.'" class="anchor"></span>';
 		}
 		
