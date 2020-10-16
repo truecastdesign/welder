@@ -33,7 +33,7 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package True 6
- * @version 2.4.2
+ * @version 2.5.1
  * @author Daniel Baldwin
  **/
 class Welder
@@ -322,24 +322,23 @@ class Welder
 				}, $_GET);
 		   }
 			
-			# check session authenticity token
+			# check session authenticity token 
 			if ($this->csrfState) {
-				if (function_exists('hash_equals')) {
-					if ($token !== false) {
-						if(hash_equals($token, $submitValues['authenticity_token']) === false)
-						{
+				if (!empty($token) and !empty($submitValues['authenticity_token'])) {
+					if (function_exists('hash_equals')) {
+						if (hash_equals($token, $submitValues['authenticity_token']) === false) {
+							$this->throwGeneralError("The authenticity token does not match what was in the form.");
+							$this->valid = false;
+						}
+					} else {
+						if ($token != $submitValues['authenticity_token']) {
 							$this->throwGeneralError("The authenticity token does not match what was in the form.");
 							$this->valid = false;
 						}
 					}
 				} else {
-					if ($token !== false) {
-						if($token != $submitValues['authenticity_token'])
-						{
-							$this->throwGeneralError("The authenticity token does not match what was in the form.");
-							$this->valid = false;
-						}
-					}				
+					$this->throwGeneralError("Your authenticity token is missing.");
+					$this->valid = false;
 				}			
 			}
 
@@ -509,55 +508,37 @@ class Welder
 		foreach($rules as $rule) # Loop through each rule and run it
 		{
 			$param = false;
-			if(preg_match("/(.*?)\[(.*?)\]/", $rule, $match))
-			{
+			if (preg_match("/(.*?)\[(.*?)\]/", $rule, $match)) {
 				$rule = $match[1];
 				$param = $match[2];
 			}
 
 			$selfRule = 'validate_'.$rule;
 						
-			if(!method_exists($this, $selfRule)) # check if the method exists for the rule
-			{
-				if(function_exists($rule))
-				{
+			if (method_exists($this, $selfRule)) # check if the method exists for the rule
+				$result = $this->$selfRule($data, $param); # Run the method and return the result	
+			
+			else  # there is a local method that matches
+				if (function_exists($rule))
 					$result = $rule($data);
-				}
-				else trigger_error("Invalid Rule: ".$rule."!",512);
-			}
-			else # there is a local method that matches
-			{
-				$result = $this->$selfRule($data, $param); # Run the method and return the result
-			}
+				else 
+					trigger_error("Invalid Rule: ".$rule."!",512);			
 
 			# check if there was an error, if there was than if no custom error is set provide it
-			if(is_bool($result) AND $result === false) # invalid
-			{
-				if(!isset($errorMsg)) # no custom error
+			if (is_bool($result) AND $result === false) { # invalid		
+				if (!isset($errorMsg)) # no custom error
 				     $this->form[$field]['error'] = $this->errorMsgs($rule, $field, $param);
 				else # custom error
-				{
 					$this->form[$field]['error'] = $errorMsg;
-					
-					/*else
-					{
-  					 	if(!strstr($this->elements[$field]['error'], "Go to field."))
-  				        $this->elements[$field]['error'] = $this->elements[$field]['error']." <a href='#error-".$field."'>Go to field.</a>";
-					}*/
-				} 
 
 				$this->valid = false; # mark the form as not valid		
 			}
-			elseif($result === true)
-			{
+			elseif ($result === true)
 				$this->form[$field]['data'] = $data;
-			}
-			
+						
 			# if the test returns content 
-			if(!is_bool($result))
-			{
-				$this->form[$field]['data'] = $result;
-			}
+			if (!is_bool($result))
+				$this->form[$field]['data'] = $data = $result;
 		}
 	}
 	
@@ -640,21 +621,18 @@ class Welder
 		switch ($type)
 		{
 			case 'checkbox':
-			case 'radio':
+			case 'radio': 
 				$labelAfter = self::buildLabel($pairs['label'], $pairs['id']);
 
 				if (isset($pairs['checked']) and empty($fieldValue))
 					$checked = true;
 				
-				if (is_string($fieldValue)) {
-					if ($fieldValue == $pairs['value']) {
+				if (!is_array($fieldValue))
+					if ($fieldValue == $pairs['value'])
 						$checked = true;
-					}
-				}
-				elseif (is_array($fieldValue)) {
+				else
 					if (in_array($pairs['value'], $fieldValue))
-						$checked = true;
-				}	
+						$checked = true;	
 			break;
 			default:
 				if (isset($pairs['label']) and isset($pairs['id']))
@@ -1040,6 +1018,17 @@ class Welder
 		if (preg_match("/[^0-9]/", $val)) return FALSE;
 		if(function_exists('mb_strlen')) return (mb_strlen($str) != $val) ? FALSE : TRUE;		
 		return (strlen($str) != $val) ? FALSE : TRUE;
+	}
+
+	# Minimum and maximum Length
+	function validate_range($str, $val)
+	{
+		if(preg_match("/[^0-9,]/", $val))
+			throw new \Exception("Range value should be min,max format.");
+
+		list($min,$max) = explode(',',$val);
+		
+		return (strlen($str) >= $min and strlen($str) <= $max)? true:false;
 	}
 	
 	# Valid Email
