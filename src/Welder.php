@@ -1927,9 +1927,9 @@ class Welder
 	    // font y position -> if font_size <= 27 then 30 to 35, if font_size > 27 then 30 to 35
 	    if ($font_size <= 27) { $font_y = rand(25, 30); } else { $font_y = rand(30, 35); }
 	    // write the text
-	    imagettftext($im, $font_size, $font_angle, $font_x, $font_y, $fontcolor, $font, $secret{$i});
+	    imagettftext($im, $font_size, $font_angle, $font_x, $font_y, $fontcolor, $font, $secret[$i]);
 	    // one more time to make it bolder
-	    imagettftext($im, $font_size, $font_angle, $font_x+1, $font_y+1, $fontcolor, $font, $secret{$i});
+	    imagettftext($im, $font_size, $font_angle, $font_x+1, $font_y+1, $fontcolor, $font, $secret[$i]);
 	    // next font x position
 	    $font_x += ($font_size + 5);
 	  }
