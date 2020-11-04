@@ -33,7 +33,7 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package True 6
- * @version 2.5.1
+ * @version 2.5.2
  * @author Daniel Baldwin
  **/
 class Welder
