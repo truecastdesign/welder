@@ -70,8 +70,9 @@ class WelderAkismet
 
 
 
-	function call($meth, $post_args, $host) {
-
+	function call($meth, $post_args, $host)
+	{
+		$pluginVersion = '';
 	  # build post URL
 
 	  $url = "http://$host/$meth";

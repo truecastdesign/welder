@@ -3,6 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
+ * @version v2.7.4
  * ### BUG: setting the value of textarea does not output it in the field
  *
 <?
@@ -614,7 +615,7 @@ class Welder
 		return ($errors[$rule]? $errors[$rule]:$errors['required']);
 	}
 	
-	private function input($type, $pairs, $fieldProperties, $fieldValue)
+	private static function input($type, $pairs, $fieldProperties, $fieldValue)
 	{	
 		$labelAfter = ''; $labelBefore = ''; $checked = false; $errorSpan = '';
 		# decide if label goes before or after input
@@ -622,7 +623,10 @@ class Welder
 		{
 			case 'checkbox':
 			case 'radio': 
-				$labelAfter = self::buildLabel($pairs['label'], $pairs['id']);
+				if (isset($pairs['label']))
+					$labelAfter = self::buildLabel($pairs['label'], $pairs['id']);
+				else
+					$labelAfter = '';
 
 				if (isset($pairs['checked']) and empty($fieldValue))
 					$checked = true;
@@ -630,7 +634,7 @@ class Welder
 				if (!is_array($fieldValue))
 					if ($fieldValue == $pairs['value'])
 						$checked = true;
-				else
+				elseif (is_array($fieldValue))
 					if (in_array($pairs['value'], $fieldValue))
 						$checked = true;	
 			break;
@@ -655,7 +659,7 @@ class Welder
 		return $errorSpan.$labelBefore.' <input type="'.$type.'"'.$fieldProperties.'> '.$labelAfter;
 	}
 	
-	private function textarea($name, $pairs, $fieldProperties, $fieldValue)
+	private static function textarea($name, $pairs, $fieldProperties, $fieldValue)
 	{
 		if (isset($pairs['name'])) {
 			$errorIdPart = $pairs['name'];
@@ -671,7 +675,7 @@ class Welder
 		return $errorSpan.self::buildLabel($pairs['label'], $pairs['id']).'<textarea'.$fieldProperties.'>'.$fieldValue.'</textarea>';
 	}
 
-	private function select($name, $pairs, $fieldProperties, $fieldValue, $selectOptions=[])
+	private static function select($name, $pairs, $fieldProperties, $fieldValue, $selectOptions=[])
 	{
 		$html = self::buildLabel($pairs['label'], $pairs['id']).'<select'.$fieldProperties.'>';
 
@@ -811,12 +815,12 @@ class Welder
 		return $html;		
 	}
 	
-	private function button($pairs, $properties)
+	private static function button($pairs, $properties)
 	{
 		return '<button'.$properties.'>'.$pairs['text'].'</button>';
 	}
 	
-	private function buildLabel($text = '', $id = null)
+	private static function buildLabel($text = '', $id = null)
 	{
 		$htmlAfterLabel = ''; $for = '';
 
@@ -875,7 +879,7 @@ class Welder
 	    return $elements;
 	}
 	
-	private function parse_csv($csv_string = '', $delimiter = ",", $skip_empty_lines = true, $trim_fields = true)
+	private static function parse_csv($csv_string = '', $delimiter = ",", $skip_empty_lines = true, $trim_fields = true)
 	{
 	    $attributes = [];
 
@@ -915,9 +919,9 @@ class Welder
 	
 	private function parse($html='')
 	{
-		$dom = new DOMDocument();
+		$dom = new \DOMDocument();
 		@$dom->loadHTML($html);
-		$x = new DOMXPath($dom); 
+		$x = new \DOMXPath($dom); 
 		
 		print_r($dom->childNodes);
 		/*foreach($x->query("//a") as $node) 
@@ -1222,10 +1226,7 @@ class Welder
 	 */	
 	function validate_clean($str)
 	{
-		if(!get_magic_quotes_gpc())
-			return utf8_encode(htmlspecialchars_decode(html_entity_decode($str)));
-		else 
-			return utf8_encode(htmlspecialchars_decode(html_entity_decode(stripslashes($str))));
+		return utf8_encode(htmlspecialchars_decode(html_entity_decode(stripslashes($str))));
 	}
 	
 	/**
@@ -1237,10 +1238,7 @@ class Welder
 	 */	
 	function validate_clean_no_stripslashes($str)
 	{
-		if(!get_magic_quotes_gpc())
-			return utf8_encode(htmlspecialchars_decode(html_entity_decode($str)));
-		else 
-			return utf8_encode(htmlspecialchars_decode(html_entity_decode($str)));
+		return utf8_encode(htmlspecialchars_decode(html_entity_decode($str)));
 	}
 	
 	// --------------------------------------------------------------------
@@ -1428,6 +1426,10 @@ class Welder
 	 */
 	function emailForm($settings=array(), $fields=null)
 	{
+		$extraHeaders = '';
+		$attachmentData = '';
+		$valuesData = '';
+		
 		if(!is_array($fields))
 		{
 			foreach($this->elements as $key=>$ele)
@@ -1682,6 +1684,7 @@ class Welder
 	public function spamTest($akismet=false, $contentInfo)
 	{
 	    $akismetKey = "1638dc33068b";
+		$host = '';
 		
 		if(!isset($_SERVER['HTTP_USER_AGENT']) OR !$_SERVER['REQUEST_METHOD'] == "POST"){
 			return true;
@@ -1808,7 +1811,7 @@ class Welder
 	{
 		$akismetKey = "1638dc33068b";
 		
-		$AK = new \Truecast\Akismet($akismetKey, "http://".$_SERVER["HTTP_HOST"]);
+		$AK = new \Truecast\WelderAkismet($akismetKey, "http://".$_SERVER["HTTP_HOST"]);
 		
      	$post_args['comment_author'] = $values["author"];
      	$post_args['comment_author_email'] = $values["author_email"];
@@ -1923,7 +1926,7 @@ class Welder
 	    $font_size = rand(18, 25);
 	    // font angle -> -20 to +20
 	    $font_angle = rand(0, 20);
-	    if ($font_angle != 0) { if (rand(0, 1) == 0) { $font_angle = -$fone_angle; } }
+	    if ($font_angle != 0) { if (rand(0, 1) == 0) { $font_angle = -$font_angle; } }
 	    // font y position -> if font_size <= 27 then 30 to 35, if font_size > 27 then 30 to 35
 	    if ($font_size <= 27) { $font_y = rand(25, 30); } else { $font_y = rand(30, 35); }
 	    // write the text
