@@ -1,6 +1,6 @@
 Welder - HTML5 Form Builder for PHP
 =======================================
-v2.7.4
+v2.7.5
 
 This library provides a simple powerful HTML5 form builder, validator, spam checker, spam submitter, form contents emailer, and more.
 
@@ -113,6 +113,13 @@ The above code will output this HTML
 	<option value="opt2" selected>Option Two</option>
 	<option value="opt3">Option Three</option>
 </select>
+```
+
+Use an array to set create the options.
+
+```php
+<? $options = ['Select...'=>'', 'Display Value'=>'value', 'Display Value 2'=>'value2']; ?>
+<?=$F->select('name=selectMenu label="Select Label"', $options)?>
 ```
 
 Custom Errors

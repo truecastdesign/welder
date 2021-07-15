@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.4
+ * @version v2.7.5
  * ### BUG: setting the value of textarea does not output it in the field
  *
 <?
@@ -98,6 +98,8 @@ class Welder
 		$singleAttributes[] = 'formnovalidate';
 		$singleAttributes[] = 'multiple';
 		$singleAttributes[] = 'required';
+		$singleAttributes[] = 'checked';
+		$singleAttributes[] = 'selected';
 
 		# exclude from adding value attribute to tag
 		$noValueAttribute[] = 'checkbox';
@@ -110,7 +112,7 @@ class Welder
 		}
 
 		$attributesStr = str_replace($attSearch, $attReplace, $attributesStr);
-
+		
 		$pairs = self::parse_csv(trim($attributesStr), ' ');
 		
 		# check if method is post or get
@@ -627,11 +629,11 @@ class Welder
 					$labelAfter = self::buildLabel($pairs['label'], $pairs['id']);
 				else
 					$labelAfter = '';
-
+				
 				if (isset($pairs['checked']) and empty($fieldValue))
 					$checked = true;
 				
-				if (!is_array($fieldValue))
+				if (!is_array($fieldValue) and !empty($fieldValue))
 					if ($fieldValue == $pairs['value'])
 						$checked = true;
 				elseif (is_array($fieldValue))
