@@ -3,8 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.5
- * ### BUG: setting the value of textarea does not output it in the field
+ * @version v2.7.6
  *
 <?
 use Truecast\Welder;
@@ -12,8 +11,13 @@ $F = new Welder
 ?>
 
 <?=$F->start('action=/register-for-events method=post class=registerForm')?>
+
 <?=$F->text('name=name label="Your Name *" style="width:250px" autofocus required pattern="^^([1-zA-Z0-1@.\s]{1,255})$" ');?>
+
+<?=$F->textarea('name=message label="Message *" style="width:550px"', $value);?>
+
 <?=$F->checkbox('name=checkBox label="Checkbox Label" value=Yes')?>
+
 <?=$F->select('name=selectMenu label="Select Label" options="opt1:Option One| opt2:Option, Two| opt3:Option, Three"')?>
 To set a default selected option other than the first one, add the property selected=(option value), example: selected=opt2
 
@@ -34,7 +38,6 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 }
  *
  * @package True 6
- * @version 2.5.2
  * @author Daniel Baldwin
  **/
 class Welder
@@ -133,6 +136,10 @@ class Welder
 			
 			if (isset($this->submitValues[$name]))
 				$fieldValue = $this->submitValues[$name];
+			elseif ($type == 'textarea' and isset($args[1])
+				$fieldValue = $args[1];
+			elseif (isset($pairs['value']) and !empty($pairs['value']))
+				$fieldValue = $pairs['value'];
 			else
 			 	$fieldValue = '';
 		} else
@@ -158,6 +165,11 @@ class Welder
 				$cleanedPairs['class'] = 'fieldError';
 			else
 				$cleanedPairs['class'] .= ' fieldError';
+		}
+
+		# check for textarea value key
+		if ($type == 'textarea') {
+			unset($cleanedPairs['value'], $pairs['value']);
 		}
 	
 		foreach($cleanedPairs as $key=>$value)
