@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.6
+ * @version v2.7.7
  *
 <?
 use Truecast\Welder;
@@ -136,7 +136,7 @@ class Welder
 			
 			if (isset($this->submitValues[$name]))
 				$fieldValue = $this->submitValues[$name];
-			elseif ($type == 'textarea' and isset($args[1])
+			elseif ($type == 'textarea' and isset($args[1]))
 				$fieldValue = $args[1];
 			elseif (isset($pairs['value']) and !empty($pairs['value']))
 				$fieldValue = $pairs['value'];
@@ -675,6 +675,9 @@ class Welder
 	
 	private static function textarea($name, $pairs, $fieldProperties, $fieldValue)
 	{
+		if (!isset($pairs['label']))
+			$pairs['label'] = '';
+		
 		if (isset($pairs['name'])) {
 			$errorIdPart = $pairs['name'];
 		} elseif ($pairs['id']) {
