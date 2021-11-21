@@ -907,7 +907,7 @@ class Welder
 	        $lines
 	    );
 		
-		if(is_array($array))
+		if (is_array($array[0]))
 		foreach($array[0] as $pair)
 		{
 			if(strpos($pair, '='))
