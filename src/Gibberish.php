@@ -1,6 +1,11 @@
 <?php
 namespace Truecast;
 
+/**
+ * Spam filter
+ * 
+ * @version 1.1.1
+ */
 class Gibberish
 {
 	protected static $_accepted_characters = 'abcdefghijklmnopqrstuvwxyz ';
@@ -10,17 +15,13 @@ class Gibberish
 	{
 		$trained_library = include self::$matrix;
 		
-		if (!is_array($trained_library)) {
+		if (!is_array($trained_library))
 			throw new \Exception("matrix library not an array");
-		}
 		
 		$value = self::_averageTransitionProbability($text, $trained_library['matrix']);
 		
-		if ($value <= $trained_library['threshold']) {
-			return true;
-		}
-		
-		return false;
+		//if ($value <= $trained_library['threshold']) {
+		return ($value <= 0.020)? true:false;
 	}
 	
 	private static function _normalise($line)
@@ -160,4 +161,3 @@ class Gibberish
 				))) > 0;
 	}
 }
-
