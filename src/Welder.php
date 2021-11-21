@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.7
+ * @version v2.7.8
  *
 <?
 use Truecast\Welder;
@@ -43,7 +43,7 @@ if($F->validate('name=name email=email phone=clean message=required') and $F->sp
 class Welder
 {
 	static $nextId = 1;
-	static $actionField;
+	var $actionField;
 	static $hideFieldErrorTags = false;
 	var $form = null;
 	var $valid = true;
@@ -63,9 +63,9 @@ class Welder
 	public function __construct($params=[])
 	{
 		if (isset($params['action_field'])) {
-			self::$actionField = $params['action_field'];
+			$this->actionField = $params['action_field'];
 		} else {
-			self::$actionField = 'submit';
+			$this->actionField = 'submit';
 		}
 
 		if (isset($params['hide_field_error_tags'])) {
@@ -294,7 +294,7 @@ class Welder
 			$str .= '<input type="hidden" name="authenticity_token" value="'.$random.'">'."\n";
 		}
 
-		$str .= '<input type="hidden" name="form_action" value="'.self::$actionField.'">'."\n";
+		$str .= '<input type="hidden" name="form_action" value="'.$this->actionField.'">'."\n";
 		
 		return $str;
 	}
@@ -312,84 +312,69 @@ class Welder
 		$submitValues = null; $formSubmitted = false;
 
 		# check if method is post or get
-	    $formSubmitted = $this->submitted();
+	   if (!$this->submitted())
+			return false;
 
+		if (PHP_SESSION_ACTIVE != session_status()) {
+			session_start();
+		}
+		
+		if ($this->csrfState) {
+			$token = $_SESSION[$this->csrfSession];
+		}
 
-		#check if form is submitted or not
-		if($formSubmitted)
-		{
-		   if(PHP_SESSION_ACTIVE != session_status()) {
-				session_start();
-			}
-			
-			if ($this->csrfState) {
-				$token = $_SESSION[$this->csrfSession];
-			}
-
-			if(isset($_POST['form_action'])) 
-		   {
-		    	$submitValues = $_POST;
-		   }	
-		   elseif(isset($_GET['form_action']))
-		   {
-		    	$submitValues = array_map(function($str){
-					return trim(strip_tags($str));
-				}, $_GET);
-		   }
-			
-			# check session authenticity token 
-			if ($this->csrfState) {
-				if (!empty($token) and !empty($submitValues['authenticity_token'])) {
-					if (function_exists('hash_equals')) {
-						if (hash_equals($token, $submitValues['authenticity_token']) === false) {
-							$this->throwGeneralError("The authenticity token does not match what was in the form.");
-							$this->valid = false;
-						}
-					} else {
-						if ($token != $submitValues['authenticity_token']) {
-							$this->throwGeneralError("The authenticity token does not match what was in the form.");
-							$this->valid = false;
-						}
+		if (isset($_POST['form_action'])) {
+			$submitValues = $_POST;
+		}	
+		elseif (isset($_GET['form_action'])) {
+			$submitValues = array_map(function($str) {
+				return trim(strip_tags($str));
+			}, $_GET);
+		}
+		
+		# check session authenticity token 
+		if ($this->csrfState) {
+			if (!empty($token) and !empty($submitValues['authenticity_token'])) {
+				if (function_exists('hash_equals')) {
+					if (hash_equals($token, $submitValues['authenticity_token']) === false) {
+						$this->throwGeneralError("The authenticity token does not match what was in the form.");
+						$this->valid = false;
 					}
 				} else {
-					$this->throwGeneralError("Your authenticity token is missing.");
-					$this->valid = false;
-				}			
-			}
-
-			# parse $attributesStr
-			$fieldRules = self::parse_csv(trim($fieldRulesStr), ' ');  
-
-			# parse $customErrors
-			$customErrors = self::parse_csv(trim($customErrorsStr), ' ');
-    		
-    		# validate the form data
-    		foreach($fieldRules as $field=>$rules)
-    		{
-    			if(isset($rules))
-    			{
-    				$customErrorMsg = array_key_exists($field, $customErrors)? $customErrors[$field]:null;
-    				$fieldValue = array_key_exists($field, $submitValues)? $submitValues[$field]:null;
-
-    				$this->rules($field, explode('|', $rules), $fieldValue, $customErrorMsg);
-    			} 
-    				
-    		}
-
-    		if( !empty($displayErrors = $this->errors()) )
-    			trigger_error($this->errors(),512); # display errors
-		
-			if($this->valid)
-			{
-				return true;
-			}
-			else
-			{
-				return false; # return form not valid so the user can see the spam errors.
-			}
+					if ($token != $submitValues['authenticity_token']) {
+						$this->throwGeneralError("The authenticity token does not match what was in the form.");
+						$this->valid = false;
+					}
+				}
+			} else {
+				$this->throwGeneralError("Your authenticity token is missing.");
+				$this->valid = false;
+			}			
 		}
-		else
-			return false;
+
+		# parse $attributesStr
+		$fieldRules = self::parse_csv(trim($fieldRulesStr), ' ');  
+
+		# parse $customErrors
+		$customErrors = self::parse_csv(trim($customErrorsStr), ' ');
+		
+		# validate the form data
+		foreach ($fieldRules as $field=>$rules)
+		{
+			if (isset($rules))
+			{
+				$customErrorMsg = array_key_exists($field, $customErrors)? $customErrors[$field]:null;
+				$fieldValue = array_key_exists($field, $submitValues)? $submitValues[$field]:null;
+
+				$this->rules($field, explode('|', $rules), $fieldValue, $customErrorMsg);
+			} 
+				
+		}
+
+		if ( !empty($displayErrors = $this->errors()) )
+			trigger_error($this->errors(),512); # display errors
+	
+		return ($this->valid)? true:false;
 	}
 	
 	/**
@@ -405,14 +390,14 @@ class Welder
 		# check if method is post or get
 	    if(isset($_POST['form_action'])) 
 	    {
-	    	if($_POST['form_action'] == self::$actionField)
+	    	if($_POST['form_action'] == $this->actionField)
 	    	{
 	    		$formSubmitted = true;
 	    	}
 	    }	
 	    elseif(isset($_GET['form_action']))
 	    {
-	    	if($_POST['form_action'] == self::$actionField)
+	    	if($_POST['form_action'] == $this->actionField)
 	    	{
 	    		$formSubmitted = true;
 	    	}	
