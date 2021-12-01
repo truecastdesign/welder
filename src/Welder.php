@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.8
+ * @version v2.7.9
  *
 <?
 use Truecast\Welder;
@@ -413,7 +413,7 @@ class Welder
 	* @return void 
 	* @author Daniel Baldwin - danb@truecastdesign.com
 	**/
-	public function setFieldValue(array $value): void
+	public function setFieldValue(array $value)
 	{
 		$this->submitValues = array_merge($this->submitValues, $value);
 	}
