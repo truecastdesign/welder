@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.9
+ * @version v2.7.11
  *
 <?
 use Truecast\Welder;
