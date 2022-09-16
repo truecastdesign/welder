@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.11
+ * @version v2.7.12
  *
 <?
 use Truecast\Welder;
@@ -19,6 +19,11 @@ $F = new Welder
 <?=$F->checkbox('name=checkBox label="Checkbox Label" value=Yes')?>
 
 <?=$F->select('name=selectMenu label="Select Label" options="opt1:Option One| opt2:Option, Two| opt3:Option, Three"')?>
+
+OR
+
+<?=$F->select('name=selectMenu label="Select Label"', ['label'=>'value', 'label 2'=>'value2'])?>
+
 To set a default selected option other than the first one, add the property selected=(option value), example: selected=opt2
 
 <?=$F->button('type=submit text="Send"')?>
