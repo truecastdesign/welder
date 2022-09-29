@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.12
+ * @version v2.7.13
  *
 <?
 use Truecast\Welder;
@@ -49,7 +49,7 @@ class Welder
 {
 	static $nextId = 1;
 	var $actionField;
-	static $hideFieldErrorTags = false;
+	var $hideFieldErrorTags = false;
 	var $form = null;
 	var $valid = true;
 	var $options = ['no_go_to_field_links'=>false];
@@ -74,7 +74,7 @@ class Welder
 		}
 
 		if (isset($params['hide_field_error_tags'])) {
-			self::$hideFieldErrorTags = $params['hide_field_error_tags'];
+			$this->hideFieldErrorTags = $params['hide_field_error_tags'];
 		}		
 
 		if (isset($params['csrf'])) {
@@ -210,26 +210,26 @@ class Welder
 			case 'color':
 			case 'range':
 				$fieldProperties .= ' value="'.htmlentities($fieldValue).'"';
-				return self::input($type, $pairs, $fieldProperties, htmlentities($fieldValue));
+				return $this->input($type, $pairs, $fieldProperties, htmlentities($fieldValue));
 			break;
 			case 'textarea':
-				return self::textarea($type, $pairs, $fieldProperties, $fieldValue);
+				return $this->textarea($type, $pairs, $fieldProperties, $fieldValue);
 			break;
 			case 'select':
-				return self::select($type, $pairs, $fieldProperties, $fieldValue, $selectOptions);
+				return $this->select($type, $pairs, $fieldProperties, $fieldValue, $selectOptions);
 			break;
 			case 'checkbox':
-				return self::input($type, $pairs, $fieldProperties, $fieldValue);
+				return $this->input($type, $pairs, $fieldProperties, $fieldValue);
 			break;
 			case 'radio':
-				return self::input($type, $pairs, $fieldProperties, $fieldValue);
+				return $this->input($type, $pairs, $fieldProperties, $fieldValue);
 			break;
 			
 			case 'button':
 				if(!empty($fieldValue))
 					$fieldProperties .= ' value="'.htmlentities($fieldValue).'"';
 
-				return self::button($pairs, $fieldProperties);
+				return $this->button($pairs, $fieldProperties);
 			break;
 		}
 	}
@@ -619,7 +619,7 @@ class Welder
 		return ($errors[$rule]? $errors[$rule]:$errors['required']);
 	}
 	
-	private static function input($type, $pairs, $fieldProperties, $fieldValue)
+	private function input($type, $pairs, $fieldProperties, $fieldValue)
 	{	
 		$labelAfter = ''; $labelBefore = ''; $checked = false; $errorSpan = '';
 		# decide if label goes before or after input
@@ -628,7 +628,7 @@ class Welder
 			case 'checkbox':
 			case 'radio': 
 				if (isset($pairs['label']))
-					$labelAfter = self::buildLabel($pairs['label'], $pairs['id']);
+					$labelAfter = $this->buildLabel($pairs['label'], $pairs['id']);
 				else
 					$labelAfter = '';
 				
@@ -644,13 +644,13 @@ class Welder
 			break;
 			default:
 				if (isset($pairs['label']) and isset($pairs['id']))
-					$labelBefore = self::buildLabel($pairs['label'], $pairs['id']);				
+					$labelBefore = $this->buildLabel($pairs['label'], $pairs['id']);				
 		}	
 
 		if ($checked)
 			$fieldProperties .= ' checked';
 
-		if ($type != 'hidden' and !self::$hideFieldErrorTags)
+		if ($type != 'hidden' and !$this->hideFieldErrorTags)
 		{
 			if (isset($pairs['name']))
 				$errorIdPart = $pairs['name'];
@@ -663,7 +663,7 @@ class Welder
 		return $errorSpan.$labelBefore.' <input type="'.$type.'"'.$fieldProperties.'> '.$labelAfter;
 	}
 	
-	private static function textarea($name, $pairs, $fieldProperties, $fieldValue)
+	private function textarea($name, $pairs, $fieldProperties, $fieldValue)
 	{
 		if (!isset($pairs['label']))
 			$pairs['label'] = '';
@@ -674,17 +674,17 @@ class Welder
 			$errorIdPart = $pairs['id'];
 		}
 		
-		if(!self::$hideFieldErrorTags)
+		if(!$this->hideFieldErrorTags)
 		{
 			$errorSpan = '<span id="error-'.$errorIdPart.'" class="anchor"></span>';
 		}
 
-		return $errorSpan.self::buildLabel($pairs['label'], $pairs['id']).'<textarea'.$fieldProperties.'>'.$fieldValue.'</textarea>';
+		return $errorSpan.$this->buildLabel($pairs['label'], $pairs['id']).'<textarea'.$fieldProperties.'>'.$fieldValue.'</textarea>';
 	}
 
-	private static function select($name, $pairs, $fieldProperties, $fieldValue, $selectOptions=[])
+	private function select($name, $pairs, $fieldProperties, $fieldValue, $selectOptions=[])
 	{
-		$html = self::buildLabel($pairs['label'], $pairs['id']).'<select'.$fieldProperties.'>';
+		$html = $this->buildLabel($pairs['label'], $pairs['id']).'<select'.$fieldProperties.'>';
 
 		#opt1:Option One| opt2:Option, Two| opt3:Option, Three
 		#Group1{Option:Option| Option2:Option2}|
@@ -822,12 +822,12 @@ class Welder
 		return $html;		
 	}
 	
-	private static function button($pairs, $properties)
+	private function button($pairs, $properties)
 	{
 		return '<button'.$properties.'>'.$pairs['text'].'</button>';
 	}
 	
-	private static function buildLabel($text = '', $id = null)
+	private function buildLabel($text = '', $id = null)
 	{
 		$htmlAfterLabel = ''; $for = '';
 
@@ -849,14 +849,14 @@ class Welder
 	}
 	
 	/*This method restores the serialized form instance.*/
-	private static function recover($form) {
+	private function recover($form) {
 		if(is_array($_SESSION["TrueAdminForm"][$form]))
 			return json_decode($_SESSION["TrueAdminForm"][$form]);
 		else
 			return array();
 	}
 	
-	private static function save($form, $field, $element) {
+	private function save($form, $field, $element) {
 		$_SESSION["TrueAdminForm"][$form][$field] = json_encode($element);
 	}
 	
