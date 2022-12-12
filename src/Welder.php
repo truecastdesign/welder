@@ -6,8 +6,7 @@ namespace Truecast;
  * @version v2.7.14
  *
 <?
-use Truecast\Welder;
-$F = new Welder
+$F = new Truecast\Welder
 ?>
 
 <?=$F->start('action=/register-for-events method=post class=registerForm')?>
@@ -33,11 +32,11 @@ $F = new \Truecast\Welder; # if you want to manually create the form, add a hidd
 The form field will automatically be added to the form if you use the $F->start() method call to generate your form.
 
 
-if($F->validate('name=name email=email phone=clean message=required') and $F->spam('akismet="name,email,content" spamcontent="subject,message" nourls=true')) # valid
+if ($F->validate('name=name email=email phone=clean message=required') and $F->spam('akismet="name,email,content" spamcontent="subject,message" nourls=true')) # valid
 {
 	$values = $F->get('object'); # array of values from form cleaned and ready to insert into database or what ever.
 	
-	$F->emailForm(array('to_name'=>'Name', 'to_email'=>'name@gmail.com', 'from_name'=>$values->name, 'from_email'=>$values->email, 'subject'=>'Contact from Website', 'type'=>'html'), [name, email, phone, message]);
+	$F->emailForm(['to_name'=>'Name', 'to_email'=>'name@gmail.com', 'from_name'=>$values->name, 'from_email'=>$values->email, 'subject'=>'Contact from Website', 'type'=>'html'], ['name', 'email', 'phone', 'message']);
 	
 	header("Location: /contact-us/thanks"); exit;
 }
