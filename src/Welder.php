@@ -56,6 +56,7 @@ class Welder
 	var $csrfSession = 'ksdfj3h9ehrjfh';
 	var $csrfState = true;
 	var $submitValues = [];
+	var $elements = [];
 	
 	/**
 	 * construct
@@ -1436,13 +1437,13 @@ class Welder
 		$attachmentData = '';
 		$valuesData = '';
 		
-		if(!is_array($fields))
-		{
-			foreach($this->elements as $key=>$ele)
-			{
-				$fields[] = $key;
-			}
-		} 
+		// if(!is_array($fields))
+		// {
+		// 	foreach($fields as $key=>$ele)
+		// 	{
+		// 		$fields[] = $key;
+		// 	}
+		// } 
 		
 		unset($fields['action'],$fields['submit']);
 		
