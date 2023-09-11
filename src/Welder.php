@@ -1452,14 +1452,20 @@ class Welder
 		switch($settings['type'])
 		{
 			case 'html':
-				$extraHeaders .= "\r\nMIME-Version: 1.0\nContent-type: text/html; charset=UTF-8\nContent-Language: en-us";
+				$extraHeaders .= "\r\nMIME-Version: 1.0\r\nContent-type: text/html; charset=UTF-8\r\nContent-Language: en-us";
+				//$extraHeaders .= "\r\nMIME-Version: 1.0\nContent-Type: multipart/alternative; boundary=\"64f8ac10_6a1f9ba9_1d4f\"";
 				
-				$eBody = $settings['header'];
+				$eBody = $settings['header'].'
+<html><body>
+';
 				foreach($fields as $key)
 				{
-					if($values[$key]) $eBody .= str_replace('_',' ',ucwords($key)).': '.nl2br(htmlspecialchars_decode(html_entity_decode(trim(stripslashes($values[$key])))),false).'<br/><br/>';
+					if($values[$key]) $eBody .= str_replace('_',' ',ucwords($key)).': '.nl2br(htmlspecialchars_decode(html_entity_decode(trim(stripslashes($values[$key])))),false).'<br><br>';
 				}
-				$eBody .= $settings['footer'];
+				$eBody .= $settings['footer']."
+</body>
+</html>
+";
 			break;
 			
 			case 'csv':
