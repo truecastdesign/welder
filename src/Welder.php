@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.14
+ * @version v2.7.15
  *
 <?
 $F = new Truecast\Welder
@@ -124,26 +124,29 @@ class Welder
 		$pairs = self::parse_csv(trim($attributesStr), ' ');
 		
 		# check if method is post or get
-	   if(isset($_POST['form_action'])) 
+	   if (isset($_POST['form_action'])) 
 	   {
-	   	$this->submitValues = $_POST;
+	   		$this->submitValues = $_POST;
 	   }	
-	   elseif(isset($_GET['form_action']))
+	   elseif (isset($_GET['form_action']))
 	   {
-	   	$this->submitValues = array_map(function($str){
+	   		$this->submitValues = array_map(function($str){
 				return trim(strip_tags($str));
 			}, $_GET);
 	   }
 		
 		# get value
 		if (isset($pairs['name'])) {
-			$name = str_replace(['[',']'],'',$pairs['name']);
+			//$name = str_replace(['[',']'],'',$pairs['name']);
+			$name = $pairs['name'];
 			
-			if (isset($this->submitValues[$name]))
+			if (array_key_exists($name, $this->submitValues)) {
 				$fieldValue = $this->submitValues[$name];
+				
+			}
 			elseif ($type == 'textarea' and isset($args[1]))
 				$fieldValue = $args[1];
-			elseif (isset($pairs['value']) and !empty($pairs['value']))
+			elseif (isset($pairs['value']) and !empty($pairs['value']) and $type != 'checkbox' and $type != 'radio')
 				$fieldValue = $pairs['value'];
 			else
 			 	$fieldValue = '';
@@ -635,7 +638,7 @@ class Welder
 				if (isset($pairs['checked']) and empty($fieldValue))
 					$checked = true;
 				
-				if (!is_array($fieldValue) and !empty($fieldValue))
+				if (!is_array($fieldValue) and strlen($fieldValue) > 0)
 					if ($fieldValue == $pairs['value'])
 						$checked = true;
 				elseif (is_array($fieldValue))
