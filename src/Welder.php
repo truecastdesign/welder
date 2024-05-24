@@ -3,13 +3,15 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.16
+ * @version v2.7.19
  *
 <?
 $F = new Truecast\Welder
 ?>
 
 <?=$F->start('action=/register-for-events method=post class=registerForm')?>
+
+If you need to use an equal sign in the action, replace the = with &#61; and it will be converted back to an equal sign in the HTML.
 
 <?=$F->text('name=name label="Your Name *" style="width:250px" autofocus required pattern="^^([1-zA-Z0-1@.\s]{1,255})$" ');?>
 
@@ -34,7 +36,7 @@ The form field will automatically be added to the form if you use the $F->start(
 
 if ($F->validate('name=name email=email phone=clean message=required') and $F->spam('akismet="name,email,content" spamcontent="subject,message" nourls=true')) # valid
 {
-	$values = $F->get('object'); # array of values from form cleaned and ready to insert into database or what ever.
+	$values = $F->get('object'); # pass 'array' or 'object' to get cleaned values from form submission
 	
 	$F->emailForm(['to_name'=>'Name', 'to_email'=>'name@gmail.com', 'from_name'=>$values->name, 'from_email'=>$values->email, 'subject'=>'Contact from Website', 'type'=>'html'], ['name', 'email', 'phone', 'message']);
 	
@@ -80,6 +82,18 @@ class Welder
 		if (isset($params['csrf'])) {
 			$this->csrfState = $params['csrf'];
 		}
+
+		# check if method is post or get
+		if (isset($_POST['form_action']) and $this->actionField = $_POST['form_action']) 
+		{
+			$this->submitValues = $_POST;
+		}	
+		elseif (isset($_GET['form_action']) and $this->actionField = $_POST['form_action'])
+		{
+			$this->submitValues = array_map(function($str){
+				 return trim(strip_tags($str));
+			 }, $_GET);
+		}
 	}
 	
 	public function __call($type, $args)
@@ -123,17 +137,7 @@ class Welder
 		
 		$pairs = self::parse_csv(trim($attributesStr), ' ');
 		
-		# check if method is post or get
-	   if (isset($_POST['form_action'])) 
-	   {
-	   		$this->submitValues = $_POST;
-	   }	
-	   elseif (isset($_GET['form_action']))
-	   {
-	   		$this->submitValues = array_map(function($str){
-				return trim(strip_tags($str));
-			}, $_GET);
-	   }
+		
 		
 		# get value
 		if (isset($pairs['name'])) {
@@ -265,6 +269,10 @@ class Welder
 		
 		# parse $attributesStr
 		$pairs = self::parse_csv(trim($attributesStr), ' ');
+
+		$pairs = array_map(function($value) {
+			return html_entity_decode($value);
+		}, $pairs);
 		
 		# run checks on pairs
 		if(!isset($pairs['method'])) 
@@ -897,7 +905,7 @@ class Welder
 	    $enc = preg_replace_callback(
 	        '/"(.*?)"/s',
 	        function ($field) {
-	            return urlencode(utf8_encode($field[1]));
+	            return urlencode($field[1]);
 	        },
 	        $enc
 	    );
@@ -1236,7 +1244,7 @@ class Welder
 	 */	
 	function validate_clean($str)
 	{
-		return utf8_encode(htmlspecialchars_decode(html_entity_decode(stripslashes($str))));
+		return htmlspecialchars_decode(html_entity_decode(stripslashes($str)));
 	}
 	
 	/**
@@ -1248,7 +1256,7 @@ class Welder
 	 */	
 	function validate_clean_no_stripslashes($str)
 	{
-		return utf8_encode(htmlspecialchars_decode(html_entity_decode($str)));
+		return htmlspecialchars_decode(html_entity_decode($str));
 	}
 	
 	// --------------------------------------------------------------------
