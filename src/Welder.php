@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.19
+ * @version v2.7.20
  *
 <?
 $F = new Truecast\Welder
@@ -915,7 +915,7 @@ class Welder
 	            $fields = $trim_fields ? array_map('trim', explode($delimiter, $line)) : explode($delimiter, $line);
 	            return array_map(
 	                function ($field) {
-	                    return str_replace('!!Q!!', '"', utf8_decode(urldecode($field)));
+	                    return str_replace('!!Q!!', '"', urldecode($field));
 	                },
 	                $fields
 	            );
