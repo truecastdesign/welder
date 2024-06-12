@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.21
+ * @version v2.7.22
  *
 <?
 $F = new Truecast\Welder
@@ -335,9 +335,10 @@ class Welder
 			session_start();
 		}
 		
-		if ($this->csrfState) {
+		if ($this->csrfState && isset($_SESSION[$this->csrfSession]) && !empty($_SESSION[$this->csrfSession]))
 			$token = $_SESSION[$this->csrfSession];
-		}
+		else
+			$token = "";
 
 		if (isset($_POST['form_action'])) {
 			$submitValues = $_POST;
