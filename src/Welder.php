@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.20
+ * @version v2.7.21
  *
 <?
 $F = new Truecast\Welder
@@ -1705,7 +1705,7 @@ class Welder
 	 * @return bool true (its SPAM), false (its HAM)
 	 * @author Dan Baldwin
 	 */
-	public function spamTest($akismet=false, $contentInfo)
+	public function spamTest($akismet=false, $contentInfo=[])
 	{
 	    $akismetKey = "1638dc33068b";
 		$host = '';
