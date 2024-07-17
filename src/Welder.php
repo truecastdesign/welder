@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.22
+ * @version v2.7.24
  *
 <?
 $F = new Truecast\Welder
@@ -91,7 +91,10 @@ class Welder
 		elseif (isset($_GET['form_action']) and $this->actionField = $_POST['form_action'])
 		{
 			$this->submitValues = array_map(function($str){
-				 return trim(strip_tags($str));
+				if (!is_null($str))
+					return trim(strip_tags($str));
+				else
+					return '';
 			 }, $_GET);
 		}
 	}
@@ -156,7 +159,7 @@ class Welder
 			 	$fieldValue = '';
 		} else
 			$fieldValue = '';
-	   
+		
 		# save element
 		$cleanedPairs = array_diff_key($pairs,array_flip($otherKeys));
 		
@@ -268,7 +271,10 @@ class Welder
 		}				
 		
 		# parse $attributesStr
-		$pairs = self::parse_csv(trim($attributesStr), ' ');
+		if (!is_null($attributesStr))
+			$pairs = self::parse_csv(trim($attributesStr), ' ');
+		else
+			$pairs = [];
 
 		$pairs = array_map(function($value) {
 			return html_entity_decode($value);
@@ -328,7 +334,7 @@ class Welder
 		$submitValues = null; $formSubmitted = false;
 
 		# check if method is post or get
-	   if (!$this->submitted())
+		if (!$this->submitted())
 			return false;
 
 		if (PHP_SESSION_ACTIVE != session_status()) {
@@ -345,7 +351,10 @@ class Welder
 		}	
 		elseif (isset($_GET['form_action'])) {
 			$submitValues = array_map(function($str) {
-				return trim(strip_tags($str));
+				if (!is_null($str))
+					return trim(strip_tags($str));
+				else
+					return '';
 			}, $_GET);
 		}
 		
@@ -370,22 +379,25 @@ class Welder
 		}
 
 		# parse $attributesStr
-		$fieldRules = self::parse_csv(trim($fieldRulesStr), ' ');  
+		if (!is_null($fieldRulesStr))
+			$fieldRules = self::parse_csv(trim($fieldRulesStr), ' ');  
 
 		# parse $customErrors
-		$customErrors = self::parse_csv(trim($customErrorsStr), ' ');
+		if (!is_null($customErrorsStr))
+			$customErrors = self::parse_csv(trim($customErrorsStr), ' ');
 		
 		# validate the form data
-		foreach ($fieldRules as $field=>$rules)
-		{
-			if (isset($rules))
-			{
-				$customErrorMsg = array_key_exists($field, $customErrors)? $customErrors[$field]:null;
+		foreach ($fieldRules as $field=>$rules) {
+			if (isset($rules)) {
+				if (isset($customErrors) && is_array($customErrors))
+					$customErrorMsg = array_key_exists($field, $customErrors)? $customErrors[$field]:null;
+				else
+					$customErrorMsg = null;
+				
 				$fieldValue = array_key_exists($field, $submitValues)? $submitValues[$field]:null;
 
 				$this->rules($field, explode('|', $rules), $fieldValue, $customErrorMsg);
-			} 
-				
+			}
 		}
 
 		if ( !empty($displayErrors = $this->errors()) )
@@ -404,23 +416,13 @@ class Welder
 	{
 		$formSubmitted = false;
 
-		# check if method is post or get
-	    if(isset($_POST['form_action'])) 
-	    {
-	    	if($_POST['form_action'] == $this->actionField)
-	    	{
-	    		$formSubmitted = true;
-	    	}
-	    }	
-	    elseif(isset($_GET['form_action']))
-	    {
-	    	if($_POST['form_action'] == $this->actionField)
-	    	{
-	    		$formSubmitted = true;
-	    	}	
-	    }
+		if (isset($_POST['form_action']) && $_POST['form_action'] == $this->actionField)
+			$formSubmitted = true;
+		elseif (isset($_GET['form_action']) && $_POST['form_action'] == $this->actionField)
+			$formSubmitted = true;
 
-	    return $formSubmitted;
+
+		 return $formSubmitted;
 	}
 
 	/**
@@ -503,7 +505,8 @@ class Welder
 	 **/
 	public function get($returnObj = false)
 	{
-		if (!count($this->form)) return false;
+		if (!is_countable($this->form) || !count($this->form)) 
+			return false;
 		
 		foreach($this->form as $field=>$values) 
 			$form[$field] = $values['data'];
@@ -544,7 +547,7 @@ class Welder
 			# check if there was an error, if there was than if no custom error is set provide it
 			if (is_bool($result) AND $result === false) { # invalid		
 				if (!isset($errorMsg)) # no custom error
-				     $this->form[$field]['error'] = $this->errorMsgs($rule, $field, $param);
+					  $this->form[$field]['error'] = $this->errorMsgs($rule, $field, $param);
 				else # custom error
 					$this->form[$field]['error'] = $errorMsg;
 
@@ -574,8 +577,9 @@ class Welder
 		
 		if($rule == 'depends')
 		{
-		    $parts = explode('=',$param);
-    		$dependField = trim($parts[0]);
+			 $parts = explode('=',$param);
+	 		if (!is_null($parts[0]))
+				$dependField = trim($parts[0]);
 		} 
 		else
 		{
@@ -696,7 +700,12 @@ class Welder
 
 	private function select($name, $pairs, $fieldProperties, $fieldValue, $selectOptions=[])
 	{
-		$html = $this->buildLabel($pairs['label'], $pairs['id']).'<select'.$fieldProperties.'>';
+		if (isset($pairs['label']))
+			$label = $pairs['label'];
+		else
+			$label = null;
+		
+		$html = $this->buildLabel($label, $pairs['id']).'<select'.$fieldProperties.'>';
 
 		#opt1:Option One| opt2:Option, Two| opt3:Option, Three
 		#Group1{Option:Option| Option2:Option2}|
@@ -709,8 +718,10 @@ class Welder
 			{
 				foreach($parts1 as $opt)
 				{
-					$parts2 = explode(":", trim($opt));
-					$options[trim($parts2[0])] = trim($parts2[1]);
+					if (!is_null($opt))
+						$parts2 = explode(":", trim($opt));
+					if (!is_null($parts2[0]) && !is_null($parts2[1]))
+						$options[trim($parts2[0])] = trim($parts2[1]);
 				}
 			}
 
@@ -874,55 +885,55 @@ class Welder
 	
 	private function getCSVValues($string, $separator=",")
 	{
-	    $elements = explode($separator, $string);
-	    for ($i = 0; $i < count($elements); $i++) {
-	        $nquotes = substr_count($elements[$i], '"');
-	        if ($nquotes %2 == 1) {
-	            for ($j = $i+1; $j < count($elements); $j++) {
-	                if (substr_count($elements[$j], '"') > 0) {
-	                    // Put the quoted string's pieces back together again
-	                    array_splice($elements, $i, $j-$i+1,
-	                        implode($separator, array_slice($elements, $i, $j-$i+1)));
-	                    break;
-	                }
-	            }
-	        }
-	        if ($nquotes > 0) {
-	            // Remove first and last quotes, then merge pairs of quotes
-	            $qstr =& $elements[$i];
-	            $qstr = substr_replace($qstr, '', strpos($qstr, '"'), 1);
-	            $qstr = substr_replace($qstr, '', strrpos($qstr, '"'), 1);
-	            $qstr = str_replace('""', '"', $qstr);
-	        }
-	    }
-	    return $elements;
+		 $elements = explode($separator, $string);
+		 for ($i = 0; $i < count($elements); $i++) {
+			  $nquotes = substr_count($elements[$i], '"');
+			  if ($nquotes %2 == 1) {
+					for ($j = $i+1; $j < count($elements); $j++) {
+						 if (substr_count($elements[$j], '"') > 0) {
+							  // Put the quoted string's pieces back together again
+							  array_splice($elements, $i, $j-$i+1,
+									implode($separator, array_slice($elements, $i, $j-$i+1)));
+							  break;
+						 }
+					}
+			  }
+			  if ($nquotes > 0) {
+					// Remove first and last quotes, then merge pairs of quotes
+					$qstr =& $elements[$i];
+					$qstr = substr_replace($qstr, '', strpos($qstr, '"'), 1);
+					$qstr = substr_replace($qstr, '', strrpos($qstr, '"'), 1);
+					$qstr = str_replace('""', '"', $qstr);
+			  }
+		 }
+		 return $elements;
 	}
 	
 	private static function parse_csv($csv_string = '', $delimiter = ",", $skip_empty_lines = true, $trim_fields = true)
 	{
-	    $attributes = [];
+		 $attributes = [];
 
-	    $enc = preg_replace('/(?<!")""/', '!!Q!!', $csv_string);
-	    $enc = preg_replace_callback(
-	        '/"(.*?)"/s',
-	        function ($field) {
-	            return urlencode($field[1]);
-	        },
-	        $enc
-	    );
-	    $lines = preg_split($skip_empty_lines ? ($trim_fields ? '/( *\R)+/s' : '/\R+/s') : '/\R/s', $enc);
-	    $array = array_map(
-	        function ($line) use ($delimiter, $trim_fields) {
-	            $fields = $trim_fields ? array_map('trim', explode($delimiter, $line)) : explode($delimiter, $line);
-	            return array_map(
-	                function ($field) {
-	                    return str_replace('!!Q!!', '"', urldecode($field));
-	                },
-	                $fields
-	            );
-	        },
-	        $lines
-	    );
+		 $enc = preg_replace('/(?<!")""/', '!!Q!!', $csv_string);
+		 $enc = preg_replace_callback(
+			  '/"(.*?)"/s',
+			  function ($field) {
+					return urlencode($field[1]);
+			  },
+			  $enc
+		 );
+		 $lines = preg_split($skip_empty_lines ? ($trim_fields ? '/( *\R)+/s' : '/\R+/s') : '/\R/s', $enc);
+		 $array = array_map(
+			  function ($line) use ($delimiter, $trim_fields) {
+					$fields = $trim_fields ? array_map('trim', explode($delimiter, $line)) : explode($delimiter, $line);
+					return array_map(
+						 function ($field) {
+							  return str_replace('!!Q!!', '"', urldecode($field));
+						 },
+						 $fields
+					);
+			  },
+			  $lines
+		 );
 		
 		if (is_array($array[0]))
 		foreach($array[0] as $pair)
@@ -945,7 +956,7 @@ class Welder
 		print_r($dom->childNodes);
 		/*foreach($x->query("//a") as $node) 
 		{
-		    $data['dom']['href'][] = $node->getAttribute("href");
+			 $data['dom']['href'][] = $node->getAttribute("href");
 		} */
 	}
 	
@@ -994,27 +1005,27 @@ class Welder
 
 		if(strstr($dependValue, '^')) # more than one value
 		{
-		    $result = false;
-		    $values = explode("^",$dependValue);
-		    foreach($values as $val)
-		    {
-		        if($_POST[$dependField] == $val)
-		        {
-		            if($str=="") return false;
-    		        else $result = true;
-		        } 
-		        else $result = true;
-		    }
-		    return $result;
+			 $result = false;
+			 $values = explode("^",$dependValue);
+			 foreach($values as $val)
+			 {
+				  if($_POST[$dependField] == $val)
+				  {
+						if($str=="") return false;
+	 				  else $result = true;
+				  } 
+				  else $result = true;
+			 }
+			 return $result;
 		}
 		else
 		{
-		    if($_POST[$dependField] == $dependValue)
-		    {
-		        if($str=="") return false;
-		        else return true;
-		    }
-		    else return true;
+			 if($_POST[$dependField] == $dependValue)
+			 {
+				  if($str=="") return false;
+				  else return true;
+			 }
+			 else return true;
 		}
 		return false;
 	}
@@ -1107,17 +1118,17 @@ class Welder
 
 	// --------------------------------------------------------------------
 
-    /**
-     * Is Numeric
-     *
-     * @access    public
-     * @param    string
-     * @return    bool
-     */
-    function validate_is_numeric($str)
-    {
-        return ( ! is_numeric($str)) ? FALSE : TRUE;
-    } 
+	 /**
+	  * Is Numeric
+	  *
+	  * @access    public
+	  * @param    string
+	  * @return    bool
+	  */
+	 function validate_is_numeric($str)
+	 {
+		  return ( ! is_numeric($str)) ? FALSE : TRUE;
+	 } 
 
 	// --------------------------------------------------------------------
 	
@@ -1135,41 +1146,41 @@ class Welder
 	
 	// --------------------------------------------------------------------
 
-    /**
-     * Is a Natural number  (0,1,2,3, etc.)
-     *
-     * @access	public
-     * @param	string
-     * @return	bool
-     */
-    function validate_is_natural($str)
-    {   
-   		return (bool)preg_match( '/^[0-9]+$/', $str);
-    }
+	 /**
+	  * Is a Natural number  (0,1,2,3, etc.)
+	  *
+	  * @access	public
+	  * @param	string
+	  * @return	bool
+	  */
+	 function validate_is_natural($str)
+	 {   
+			return (bool)preg_match( '/^[0-9]+$/', $str);
+	 }
 
 	// --------------------------------------------------------------------
 
-    /**
-     * Is a Natural number, but not a zero  (1,2,3, etc.)
-     *
-     * @access	public
-     * @param	string
-     * @return	bool
-     */
+	 /**
+	  * Is a Natural number, but not a zero  (1,2,3, etc.)
+	  *
+	  * @access	public
+	  * @param	string
+	  * @return	bool
+	  */
 	function validate_is_natural_no_zero($str)
-    {
-    	if ( ! preg_match( '/^[0-9]+$/', $str))
-    	{
-    		return FALSE;
-    	}
-    	
-    	if ($str == 0)
-    	{
-    		return FALSE;
-    	}
-    
-   		return TRUE;
-    }
+	 {
+	 	if ( ! preg_match( '/^[0-9]+$/', $str))
+	 	{
+	 		return FALSE;
+	 	}
+	 	
+	 	if ($str == 0)
+	 	{
+	 		return FALSE;
+	 	}
+	 
+			return TRUE;
+	 }
 	
 	// --------------------------------------------------------------------
 	
@@ -1401,10 +1412,10 @@ class Welder
 	function validate_phonenumbersonly($str)
 	{
 		if($str == '') return false;
-    	$numbersOnly = preg_replace("[^0-9]", "", $str);
-        $numberOfDigits = strlen($numbersOnly);
-        if($numberOfDigits == 7 OR $numberOfDigits == 10 OR $numberOfDigits == 11) return true;
-        else return false;
+	 	$numbersOnly = preg_replace("[^0-9]", "", $str);
+		  $numberOfDigits = strlen($numbersOnly);
+		  if($numberOfDigits == 7 OR $numberOfDigits == 10 OR $numberOfDigits == 11) return true;
+		  else return false;
 	}
 	
 	function validate_phone($str)
@@ -1440,7 +1451,7 @@ class Welder
 	 *
 	 * @param array $settings array('to_name'=>'', 'to_email'=>'', 'from_name'=>'', 'from_email'=>'', 'subject'=>'', 'type'=>html|csv, 'header'=>'', 'footer'=>'', 'email_header'=>'').
 	 * @param array $fields list of fields that need to be sent. Leave blank for all.
-     * @return bool
+	  * @return bool
 	 * @author Dan Baldwin
 	 */
 	function emailForm($settings=array(), $fields=null)
@@ -1634,8 +1645,10 @@ class Welder
 				}
 			} elseif (count($fields) > 0) {
 				foreach ($fields as $field) {
-					$field = trim($field);
-					if (!isset($_POST[$field])) continue;
+					if (!is_null($field))
+						$field = trim($field);
+					if (!isset($_POST[$field])) 
+						continue;
 
 					if ($this->urlDetect($_POST[$field])) {
 						$result = false;
@@ -1708,7 +1721,7 @@ class Welder
 	 */
 	public function spamTest($akismet=false, $contentInfo=[])
 	{
-	    $akismetKey = "1638dc33068b";
+		 $akismetKey = "1638dc33068b";
 		$host = '';
 		
 		if(!isset($_SERVER['HTTP_USER_AGENT']) OR !$_SERVER['REQUEST_METHOD'] == "POST"){
@@ -1720,7 +1733,7 @@ class Welder
 		#else $authHosts = $host;
 		$fromArray = parse_url(strtolower($_SERVER['HTTP_REFERER']));
 		$wwwUsed = strpos($fromArray['host'], "www.");
-        
+		  
 		if(!in_array(($wwwUsed === false ? $fromArray['host'] : substr(stristr($fromArray['host'], '.'), 1)), $authHosts))
 		{   
 			return true;  
@@ -1746,13 +1759,13 @@ class Welder
 		// and continue rest of script:   
 		unset($k, $v, $v2, $badStrings, $authHosts, $fromArray, $wwwUsed, $host);
 		
-        if($akismet)
-        {
-            $AK = new \Truecast\WelderAkismet($akismetKey, "http://".$host);
-            
-            if(!is_array($contentInfo)) echo 'Akismet Error: Supplied content is not an array.';
-            
-            $contentData = array(
+		  if($akismet)
+		  {
+				$AK = new \Truecast\WelderAkismet($akismetKey, "http://".$host);
+				
+				if(!is_array($contentInfo)) echo 'Akismet Error: Supplied content is not an array.';
+				
+				$contentData = array(
 					'user_ip' => $_SERVER['REMOTE_ADDR'],
 					'user_agent' => $_SERVER['HTTP_USER_AGENT'],
 					'referrer' => $_REQUEST['REFERER'],
@@ -1760,11 +1773,11 @@ class Welder
 					'comment_author' => $contentInfo["author"],
 					'comment_author_email' => $contentInfo["author_email"],
 					'comment_content' => $contentInfo["content"]);
-            
-            return $AK->check_comment($contentData); # is spam if returns true 
-        }
-        
-        return false;
+				
+				return $AK->check_comment($contentData); # is spam if returns true 
+		  }
+		  
+		  return false;
 	}
 
 	/**
@@ -1838,9 +1851,9 @@ class Welder
 		
 		$AK = new \Truecast\WelderAkismet($akismetKey, "http://".$_SERVER["HTTP_HOST"]);
 		
-     	$post_args['comment_author'] = $values["author"];
-     	$post_args['comment_author_email'] = $values["author_email"];
-     	$post_args['comment_content'] = $values["content"];
+	  	$post_args['comment_author'] = $values["author"];
+	  	$post_args['comment_author_email'] = $values["author_email"];
+	  	$post_args['comment_content'] = $values["content"];
 		
 		$AK->submit_spam($post_args);
 	}
@@ -1920,17 +1933,17 @@ class Welder
 	  // lines -> black bg (1=white or 2=grey), white bg (1=black or 2=grey), grey bg (black only)
 	  $randval = rand(1, 3);
 	  if ($randval == 1) {
-	    $bgcolor = $black;
-	    $fontcolor = $white;
-	    $linecolor = ((rand(0, 1) == 0) ? $black : $white);
+		 $bgcolor = $black;
+		 $fontcolor = $white;
+		 $linecolor = ((rand(0, 1) == 0) ? $black : $white);
 	  } elseif ($randval == 2) {
-	    $bgcolor = $white;
-	    $fontcolor = $black;
-	    $linecolor = ((rand(0, 1) == 0) ? $black : $white);
+		 $bgcolor = $white;
+		 $fontcolor = $black;
+		 $linecolor = ((rand(0, 1) == 0) ? $black : $white);
 	  } else {
-	    $bgcolor = $grey;
-	    $fontcolor = $black;
-	    $linecolor = ((rand(0, 1) == 0) ? $black : $grey);
+		 $bgcolor = $grey;
+		 $fontcolor = $black;
+		 $linecolor = ((rand(0, 1) == 0) ? $black : $grey);
 	  }
 
 	  // line positioning and increment
@@ -1947,28 +1960,28 @@ class Welder
 
 	  // write text
 	  for ($i = 0; $i < strlen($secret); $i++) {
-	    // font size -> 20 to 35
-	    $font_size = rand(18, 25);
-	    // font angle -> -20 to +20
-	    $font_angle = rand(0, 20);
-	    if ($font_angle != 0) { if (rand(0, 1) == 0) { $font_angle = -$font_angle; } }
-	    // font y position -> if font_size <= 27 then 30 to 35, if font_size > 27 then 30 to 35
-	    if ($font_size <= 27) { $font_y = rand(25, 30); } else { $font_y = rand(30, 35); }
-	    // write the text
-	    imagettftext($im, $font_size, $font_angle, $font_x, $font_y, $fontcolor, $font, $secret[$i]);
-	    // one more time to make it bolder
-	    imagettftext($im, $font_size, $font_angle, $font_x+1, $font_y+1, $fontcolor, $font, $secret[$i]);
-	    // next font x position
-	    $font_x += ($font_size + 5);
+		 // font size -> 20 to 35
+		 $font_size = rand(18, 25);
+		 // font angle -> -20 to +20
+		 $font_angle = rand(0, 20);
+		 if ($font_angle != 0) { if (rand(0, 1) == 0) { $font_angle = -$font_angle; } }
+		 // font y position -> if font_size <= 27 then 30 to 35, if font_size > 27 then 30 to 35
+		 if ($font_size <= 27) { $font_y = rand(25, 30); } else { $font_y = rand(30, 35); }
+		 // write the text
+		 imagettftext($im, $font_size, $font_angle, $font_x, $font_y, $fontcolor, $font, $secret[$i]);
+		 // one more time to make it bolder
+		 imagettftext($im, $font_size, $font_angle, $font_x+1, $font_y+1, $fontcolor, $font, $secret[$i]);
+		 // next font x position
+		 $font_x += ($font_size + 5);
 	  }
 
 	  // draw horizontal lines
 	  for ($y = $y_start; $y < $img_height; $y += $y_size) {
-	    imageline($im, 0, $y, $img_width, $y, $linecolor);
+		 imageline($im, 0, $y, $img_width, $y, $linecolor);
 	  }
 	  // draw vertical lines
 	  for ($x = $x_start; $x < $img_width; $x += $x_size) {
-	    imageline($im, $x, 0, $x, $img_height, $linecolor);
+		 imageline($im, $x, 0, $x, $img_height, $linecolor);
 	  }
 
 	  // return captcha image handle
@@ -2001,10 +2014,12 @@ class Welder
 	 */
 	private function textToId($string)
 	{    
-	    $string = str_replace(" ","-", trim($string));         
-	    $string = preg_replace("/[^a-zA-Z0-9-]/","", $string);
-	    $string = strtolower($string);
-	    return $string;
+		 if (is_null($string))
+			return '';
+		$string = str_replace(" ","-", trim($string));         
+		 $string = preg_replace("/[^a-zA-Z0-9-]/","", $string);
+		 $string = strtolower($string);
+		 return $string;
 	}
 	
 	/**
@@ -2018,10 +2033,10 @@ class Welder
 	 */
 	private function strposa($haystack, $needle, $offset=0)
 	{
-	    if(!is_array($needle)) $needle = array($needle);
-	    foreach($needle as $query) {
-	        if(strpos($haystack, $query, $offset) !== false) return true; // stop on first true result
-	    }
-	    return false;
+		 if(!is_array($needle)) $needle = array($needle);
+		 foreach($needle as $query) {
+			  if(strpos($haystack, $query, $offset) !== false) return true; // stop on first true result
+		 }
+		 return false;
 	}
 }

@@ -4,7 +4,7 @@
   "description": "This library provides a full featured HTML form builder, validator, and spam checker.",
   "keywords": ["php","form","builder","maker","html","html5","validator","spam","checker","filter","mailer","processor"],
   "license": "MIT",
-  "version": "v2.7.22",
+  "version": "v2.7.24",
 
   "authors": [
   {
