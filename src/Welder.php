@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.24
+ * @version v2.7.25
  *
 <?
 $F = new Truecast\Welder
@@ -69,28 +69,22 @@ class Welder
 	 */
 	public function __construct($params=[])
 	{
-		if (isset($params['action_field'])) {
+		if (isset($params['action_field']))
 			$this->actionField = $params['action_field'];
-		} else {
+		else
 			$this->actionField = 'submit';
-		}
 
-		if (isset($params['hide_field_error_tags'])) {
+		if (isset($params['hide_field_error_tags']))
 			$this->hideFieldErrorTags = $params['hide_field_error_tags'];
-		}		
 
-		if (isset($params['csrf'])) {
+		if (isset($params['csrf']))
 			$this->csrfState = $params['csrf'];
-		}
 
 		# check if method is post or get
-		if (isset($_POST['form_action']) and $this->actionField = $_POST['form_action']) 
-		{
-			$this->submitValues = $_POST;
-		}	
-		elseif (isset($_GET['form_action']) and $this->actionField = $_POST['form_action'])
-		{
-			$this->submitValues = array_map(function($str){
+		if (isset($_POST['form_action']) and $this->actionField == $_POST['form_action']) 
+			$this->submitValues = $_POST;	
+		elseif (isset($_GET['form_action']) and $this->actionField == $_POST['form_action']) {
+			$this->submitValues = array_map(function($str) {
 				if (!is_null($str))
 					return trim(strip_tags($str));
 				else
@@ -104,7 +98,7 @@ class Welder
 		$attributesStr = $args[0];
 		$selectOptions = (isset($args[1])? $args[1]:[]);				
 		
-		$random = ''; $secure = false; $fieldProperties = ''; $name = '';
+		$fieldProperties = ''; $name = '';
 		
 		$otherKeys[] = 'error';
 		$otherKeys[] = 'rules';
@@ -139,8 +133,6 @@ class Welder
 		$attributesStr = str_replace($attSearch, $attReplace, $attributesStr);
 		
 		$pairs = self::parse_csv(trim($attributesStr), ' ');
-		
-		
 		
 		# get value
 		if (isset($pairs['name'])) {
@@ -331,15 +323,14 @@ class Welder
 	 **/
 	public function validate($fieldRulesStr, $customErrorsStr = null)
 	{
-		$submitValues = null; $formSubmitted = false;
+		$submitValues = null;
 
 		# check if method is post or get
 		if (!$this->submitted())
 			return false;
 
-		if (PHP_SESSION_ACTIVE != session_status()) {
+		if (PHP_SESSION_ACTIVE != session_status())
 			session_start();
-		}
 		
 		if ($this->csrfState && isset($_SESSION[$this->csrfSession]) && !empty($_SESSION[$this->csrfSession]))
 			$token = $_SESSION[$this->csrfSession];
@@ -415,14 +406,13 @@ class Welder
 	public function submitted()
 	{
 		$formSubmitted = false;
-
+		
 		if (isset($_POST['form_action']) && $_POST['form_action'] == $this->actionField)
 			$formSubmitted = true;
-		elseif (isset($_GET['form_action']) && $_POST['form_action'] == $this->actionField)
+		elseif (isset($_GET['form_action']) && $_GET['form_action'] == $this->actionField)
 			$formSubmitted = true;
 
-
-		 return $formSubmitted;
+		return $formSubmitted;
 	}
 
 	/**
