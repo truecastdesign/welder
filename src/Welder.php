@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.25
+ * @version v2.7.26
  *
 <?
 $F = new Truecast\Welder
@@ -34,7 +34,7 @@ $F = new \Truecast\Welder; # if you want to manually create the form, add a hidd
 The form field will automatically be added to the form if you use the $F->start() method call to generate your form.
 
 
-if ($F->validate('name=name email=email phone=clean message=required') and $F->spam('akismet="name,email,content" spamcontent="subject,message" nourls=true')) # valid
+if ($F->validate('name=name email=email phone=clean message=required') and $F->spam('akismet="name,email,content" spamcontent="phone,message" nourls="phone,message"')) # valid
 {
 	$values = $F->get('object'); # pass 'array' or 'object' to get cleaned values from form submission
 	
