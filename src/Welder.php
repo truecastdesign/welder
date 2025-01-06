@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.26
+ * @version v2.7.27
  *
 <?
 $F = new Truecast\Welder
@@ -211,8 +211,8 @@ class Welder
 			case 'week':
 			case 'color':
 			case 'range':
-				$fieldProperties .= ' value="'.htmlentities($fieldValue).'"';
-				return $this->input($type, $pairs, $fieldProperties, htmlentities($fieldValue));
+				$fieldProperties .= ' value="'.htmlentities($fieldValue ?? '').'"';
+				return $this->input($type, $pairs, $fieldProperties, htmlentities($fieldValue ?? ''));
 			break;
 			case 'textarea':
 				return $this->textarea($type, $pairs, $fieldProperties, $fieldValue);

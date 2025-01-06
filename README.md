@@ -16,7 +16,7 @@ To install with composer:
 composer require truecastdesign/welder
 ```
 
-Requires PHP 5.5 or newer.
+Requires PHP 7.0 or newer.
 
 Usage
 -----
