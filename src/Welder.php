@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.27
+ * @version v2.7.28
  *
 <?
 $F = new Truecast\Welder
@@ -495,7 +495,7 @@ class Welder
 	 **/
 	public function get($returnObj = false)
 	{
-		if (!is_countable($this->form) || !count($this->form)) 
+		if (!\is_countable($this->form) || !count($this->form)) 
 			return false;
 		
 		foreach($this->form as $field=>$values) 
