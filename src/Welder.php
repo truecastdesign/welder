@@ -3,7 +3,7 @@ namespace Truecast;
 /**
  * Form Builder and Validation class
  * 
- * @version v2.7.28
+ * @version v2.9.1
  *
 <?
 $F = new Truecast\Welder
@@ -132,7 +132,7 @@ class Welder
 
 		$attributesStr = str_replace($attSearch, $attReplace, $attributesStr);
 		
-		$pairs = self::parse_csv(trim($attributesStr), ' ');
+		$pairs = self::parseAttributes(trim($attributesStr), ' ');
 		
 		# get value
 		if (isset($pairs['name'])) {
@@ -187,7 +187,7 @@ class Welder
 			}				
 			
 			$fieldProperties .= ' '.$key.'="'.$value.'"';				
-		}
+		}		
 		
 		switch($type)
 		{
@@ -264,7 +264,7 @@ class Welder
 		
 		# parse $attributesStr
 		if (!is_null($attributesStr))
-			$pairs = self::parse_csv(trim($attributesStr), ' ');
+			$pairs = self::parseAttributes(trim($attributesStr), ' ');
 		else
 			$pairs = [];
 
@@ -371,11 +371,11 @@ class Welder
 
 		# parse $attributesStr
 		if (!is_null($fieldRulesStr))
-			$fieldRules = self::parse_csv(trim($fieldRulesStr), ' ');  
+			$fieldRules = self::parseAttributes(trim($fieldRulesStr), ' ');  
 
 		# parse $customErrors
 		if (!is_null($customErrorsStr))
-			$customErrors = self::parse_csv(trim($customErrorsStr), ' ');
+			$customErrors = self::parseAttributes(trim($customErrorsStr), ' ');
 		
 		# validate the form data
 		foreach ($fieldRules as $field=>$rules) {
@@ -641,7 +641,7 @@ class Welder
 				if (isset($pairs['checked']) and empty($fieldValue))
 					$checked = true;
 				
-				if (!is_array($fieldValue) and strlen($fieldValue) > 0)
+				if (!empty($fieldValue) && !is_array($fieldValue) && strlen($fieldValue) > 0)
 					if ($fieldValue == $pairs['value'])
 						$checked = true;
 				elseif (is_array($fieldValue))
@@ -898,44 +898,62 @@ class Welder
 		 }
 		 return $elements;
 	}
-	
-	private static function parse_csv($csv_string = '', $delimiter = ",", $skip_empty_lines = true, $trim_fields = true)
-	{
-		 $attributes = [];
 
-		 $enc = preg_replace('/(?<!")""/', '!!Q!!', $csv_string);
-		 $enc = preg_replace_callback(
-			  '/"(.*?)"/s',
-			  function ($field) {
-					return urlencode($field[1]);
-			  },
-			  $enc
-		 );
-		 $lines = preg_split($skip_empty_lines ? ($trim_fields ? '/( *\R)+/s' : '/\R+/s') : '/\R/s', $enc);
-		 $array = array_map(
-			  function ($line) use ($delimiter, $trim_fields) {
-					$fields = $trim_fields ? array_map('trim', explode($delimiter, $line)) : explode($delimiter, $line);
-					return array_map(
-						 function ($field) {
-							  return str_replace('!!Q!!', '"', urldecode($field));
-						 },
-						 $fields
-					);
-			  },
-			  $lines
-		 );
-		
-		if (is_array($array[0]))
-		foreach($array[0] as $pair)
-		{
-			if(strpos($pair, '='))
-			{
-				list($key, $value) = explode('=',$pair);
-				$attributes[$key] = $value;				
-			}			
+	private static function parseAttributes($attrString)
+	{
+		$attributes = [];
+		$parts = preg_split('/\s+(?=(?:(?:[^"]*"){2})*[^"]*$)/', trim($attrString), -1, PREG_SPLIT_NO_EMPTY);
+
+		foreach ($parts as $part) {
+			if (preg_match('/^([^=]+)="([^"]*)"$/', $part, $matches)) {
+					$attributes[$matches[1]] = $matches[2];
+			} elseif (preg_match('/^([^=]+)=([^\s"]+)$/', $part, $matches)) {
+					$attributes[$matches[1]] = $matches[2];
+			} elseif (preg_match('/^([^=]+)$/', $part, $matches)) {
+					$attributes[$matches[1]] = true; // Boolean attribute
+			}
 		}
+
 		return $attributes;
 	}
+	
+	// private static function parse_csv($csv_string = '', $delimiter = ",", $skip_empty_lines = true, $trim_fields = true)
+	// {
+	// 	 $attributes = [];
+
+	// 	 $enc = preg_replace('/(?<!")""/', '!!Q!!', $csv_string);
+	// 	 $enc = preg_replace_callback(
+	// 		  '/"(.*?)"/s',
+	// 		  function ($field) {
+	// 				return urlencode($field[1]);
+	// 		  },
+	// 		  $enc
+	// 	 );
+	// 	 $lines = preg_split($skip_empty_lines ? ($trim_fields ? '/( *\R)+/s' : '/\R+/s') : '/\R/s', $enc);
+	// 	 $array = array_map(
+	// 		  function ($line) use ($delimiter, $trim_fields) {
+	// 				$fields = $trim_fields ? array_map('trim', explode($delimiter, $line)) : explode($delimiter, $line);
+	// 				return array_map(
+	// 					 function ($field) {
+	// 						  return str_replace('!!Q!!', '"', urldecode($field));
+	// 					 },
+	// 					 $fields
+	// 				);
+	// 		  },
+	// 		  $lines
+	// 	 );
+		
+	// 	if (is_array($array[0]))
+	// 	foreach($array[0] as $pair)
+	// 	{
+	// 		if(strpos($pair, '='))
+	// 		{
+	// 			list($key, $value) = explode('=',$pair);
+	// 			$attributes[$key] = $value;				
+	// 		}			
+	// 	}
+	// 	return $attributes;
+	// }
 	
 	private function parse($html='')
 	{
@@ -1246,7 +1264,10 @@ class Welder
 	 */	
 	function validate_clean($str)
 	{
-		return htmlspecialchars_decode(html_entity_decode(stripslashes($str)));
+		if (is_string($str) or is_numeric($str))
+			return htmlspecialchars_decode(html_entity_decode(stripslashes($str)));
+		else
+			return $str;
 	}
 	
 	/**
@@ -1434,6 +1455,25 @@ class Welder
 		else return true;
 		#return preg_match('|^http(s)?://[a-z0-9-]+(.[a-z0-9-]+)*(:[0-9]+)?(/.*)?$|i', $str);
 	}
+
+	/**
+	 * Validate an array field by checking if it contains only valid values.
+	 *
+	 * @param array|string $str The submitted form data for this field.
+	 * @return bool Returns true if valid, otherwise false.
+	 */
+	private function validate_array($str)
+	{
+		if (!is_array($str)) return false; // Ensure it's an array
+
+		foreach ($str as $value) {
+			if (!is_numeric($value)) { // Example: Check if all values are numeric (adjust as needed)
+				return false;
+			}
+		}
+
+		return true;
+	}
 	
 	
 	/**
@@ -1607,7 +1647,7 @@ class Welder
 		# expected values: 'spamcontent=message,name akismet=name,email,content nourls=true captcha'
 
 		# parse $attributesStr
-		$pairs = self::parse_csv(trim($attributesStr), ' ');
+		$pairs = self::parseAttributes(trim($attributesStr), ' ');
 
 		$akismet = array_key_exists('akismet', $pairs)? true:false;
 		
@@ -1712,7 +1752,7 @@ class Welder
 	public function spamTest($akismet=false, $contentInfo=[])
 	{
 		 $akismetKey = "1638dc33068b";
-		$host = '';
+		 $host = '';
 		
 		if(!isset($_SERVER['HTTP_USER_AGENT']) OR !$_SERVER['REQUEST_METHOD'] == "POST"){
 			return true;
